@@ -2,9 +2,11 @@
 #include <dirent.h>
 #include <pwd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 typedef struct {
@@ -36,21 +38,33 @@ void get_user_id_and_name() {
 #endif
 }
 
-// void get_user_process() {
-//     DIR* dir_ptr;
-//     struct dirent* dirent_ptr;
+void get_user_process() {
+    DIR* dir_ptr;
+    struct dirent* dirent_ptr;
+    struct stat statbuf;
+    struct tm* date;
+    time_t now;
+    time_t timebuf;
 
-//     if ((dir_ptr = opendir("/proc")) == NULL) {
-//         perror("opendir");
-//         exit(1);
-//     }
+    time(&now);
 
-//     while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
-//         if (is_number_string(dirent_ptr->d_name)) {
+    if ((dir_ptr = opendir("/proc")) == NULL) {
+        perror("opendir");
+        exit(1);
+    }
 
-//         }
-//     }
-// }
+    while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
+        if (is_number_string(dirent_ptr->d_name)) {
+            if (is_user_process(&statbuf, dirent_ptr->d_name)) {
+                timebuf = now - statbuf.st_ctime;
+                date = localtime(&timebuf);
+#ifdef DEBUG
+                printf("pid: %s, usage time: %d:%d:%d\n", dirent_ptr->d_name, (date->tm_mday - 1) * 24 + date->tm_hour - 9, date->tm_min, date->tm_sec);
+#endif
+            }
+        }
+    }
+}
 
 int is_number_string(char* str) {
     int i = 0;
@@ -90,5 +104,7 @@ int main() {
     puts(is_user_process(&info, pid_str) ? "true" : "false");
     sprintf(pid_str, "%d", 1);
     puts(is_user_process(&info, pid_str) ? "true" : "false");
+
+    get_user_process();
 }
 #endif
