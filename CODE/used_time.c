@@ -27,12 +27,14 @@ int record_compare(const void*, const void*, void*);
 bool record_iter(const void*, void*);
 uint64_t record_hash(const void*, uint64_t, uint64_t);
 void setup();
+void cleanup();
 void get_user_process();
 bool is_number_string(char*);
 bool is_user_process(struct stat*, char*, int);
 void get_process_name_by_pid_string(char*, char*);
 
-struct hashmap* map;
+struct hashmap* curr;
+struct hashmap* prev;
 
 int record_compare(const void* a, const void* b, void* rdata) {
     const name_start_time* ra = a;
@@ -53,11 +55,13 @@ uint64_t record_hash(const void* item, uint64_t seed0, uint64_t seed1) {
 }
 
 void setup() {
-    map = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    curr = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    prev = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 }
 
 void cleanup() {
-    hashmap_free(map);
+    hashmap_free(curr);
+    hashmap_free(prev);
 }
 
 void get_user_process() {
@@ -65,12 +69,12 @@ void get_user_process() {
     struct dirent* dirent_ptr;
     struct stat statbuf;
     struct tm* date;
-    time_t now;
-    time_t timebuf;
     uid_t uid;
+    name_start_time record;
+    name_start_time record_arg;
+    name_start_time* record_ptr;
 
     uid = geteuid();
-    now = time(NULL);
 
     if ((dir_ptr = opendir("/proc")) == NULL) {
         perror("opendir");
@@ -80,16 +84,33 @@ void get_user_process() {
     while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
         if (is_number_string(dirent_ptr->d_name)) {
             if (is_user_process(&statbuf, dirent_ptr->d_name, uid)) {
-                timebuf = now - statbuf.st_ctime;
-                date = localtime(&timebuf);
+                record.start_time = statbuf.st_ctime;
+                get_process_name_by_pid_string(record.name, dirent_ptr->d_name);
+
+                strcpy(record_arg.name, record.name);
+                record_ptr = hashmap_get(curr, &record_arg);
+
+                // 한 프로그램에 대해 여러 개의 프로세스가 실행된 경우, 더 일찍 실행된 프로세스를 선택함
+                if (record_ptr) {
+                    if (record.start_time < record_ptr->start_time) {
+                        hashmap_delete(curr, &record_arg);
+                        hashmap_set(curr, &record);
+                    }
 #ifdef DEBUG
-                printf("pid: %s, usage time: %d:%d:%d\n", dirent_ptr->d_name, (date->tm_mday - 1) * 24 + date->tm_hour - 9, date->tm_min, date->tm_sec);
+                    puts("hashmap conflicted!!!");
 #endif
+                } else {
+                    hashmap_set(curr, &record);
+                }
             }
         }
     }
 
     closedir(dir_ptr);
+
+#ifdef DEBUG
+    hashmap_scan(curr, record_iter, NULL);
+#endif
 }
 
 bool is_number_string(char* str) {
@@ -120,6 +141,7 @@ void get_process_name_by_pid_string(char* namebuf, char* pid_str) {
     fscanf(fp, "%s", namebuf);
     fscanf(fp, "%s", namebuf);
     fclose(fp);
+
 #ifdef DEBUG
     puts(namebuf);
 #endif
@@ -150,9 +172,6 @@ int main() {
     puts(is_user_process(&info, pid_str, uid) ? "true" : "false");
     sprintf(pid_str, "%d", 1);
     puts(is_user_process(&info, pid_str, uid) ? "true" : "false");
-
-    // test get_user_process
-    get_user_process();
 
     // test get_process_name_by_pid_string
     get_process_name_by_pid_string(namebuf, "1");
@@ -193,5 +212,14 @@ int main() {
     }
 
     hashmap_free(map);
+
+    // setup global variables
+    setup();
+
+    // test get_user_process
+    get_user_process();
+
+    // cleanup global variables
+    cleanup();
 }
 #endif
