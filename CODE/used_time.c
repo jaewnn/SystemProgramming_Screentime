@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <pwd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,17 +10,21 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "../hashmap.c/hashmap.h"
+
 typedef struct {
-    int start_time;
+    time_t start_time;
     char name[32];
 } name_start_time;
 
 typedef struct {
     int week;
-    int usage_time;
+    time_t usage_time;
     char name[32];
 } name_usage_time;
 
+int record_compare(const void*, const void*, void*);
+bool record_iter(const void*, void*);
 void get_user_name();
 void get_user_process();
 int is_number_string(char*);
@@ -28,6 +33,24 @@ void get_process_name_by_pid_string(char*, char*);
 
 uid_t uid;
 char user[32];
+
+// int record_compare(const void* a, const void* b, void* rdata) {
+//     const name_start_time* ra = a;
+//     const name_start_time* rb = b;
+//     return strcmp(ra->name, rb->name);
+// }
+
+// bool record_iter(const void* item, void* rdata) {
+//     const name_start_time* record = item;
+//     struct tm* date = localtime(&(record->start_time));
+//     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+//     return true;
+// }
+
+// uint64_t user_hash(const void* item, uint64_t seed0, uint64_t seed1) {
+//     const name_start_time* record = item;
+//     return hashmap_sip(record->name, strlen(record->name), seed0, seed1);
+// }
 
 void get_user_id_and_name() {
     struct passwd* pwd;
