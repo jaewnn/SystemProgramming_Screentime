@@ -26,6 +26,7 @@ typedef struct {
 int record_compare(const void*, const void*, void*);
 bool record_iter(const void*, void*);
 uint64_t record_hash(const void*, uint64_t, uint64_t);
+void setup();
 void get_user_process();
 bool is_number_string(char*);
 bool is_user_process(struct stat*, char*, int);
@@ -49,6 +50,14 @@ bool record_iter(const void* item, void* rdata) {
 uint64_t record_hash(const void* item, uint64_t seed0, uint64_t seed1) {
     const name_start_time* record = item;
     return hashmap_sip(record->name, strlen(record->name), seed0, seed1);
+}
+
+void setup() {
+    map = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+}
+
+void cleanup() {
+    hashmap_free(map);
 }
 
 void get_user_process() {
