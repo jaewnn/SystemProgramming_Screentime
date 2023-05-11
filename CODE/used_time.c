@@ -65,6 +65,8 @@ void get_user_process() {
             }
         }
     }
+
+    closedir(dir_ptr);
 }
 
 int is_number_string(char* str) {
