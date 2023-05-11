@@ -26,14 +26,12 @@ typedef struct {
 int record_compare(const void*, const void*, void*);
 bool record_iter(const void*, void*);
 uint64_t record_hash(const void*, uint64_t, uint64_t);
-void get_user_name();
 void get_user_process();
 bool is_number_string(char*);
-bool is_user_process(struct stat*, char*);
+bool is_user_process(struct stat*, char*, int);
 void get_process_name_by_pid_string(char*, char*);
 
-uid_t uid;
-char user[32];
+struct hashmap* map;
 
 int record_compare(const void* a, const void* b, void* rdata) {
     const name_start_time* ra = a;
@@ -53,16 +51,6 @@ uint64_t record_hash(const void* item, uint64_t seed0, uint64_t seed1) {
     return hashmap_sip(record->name, strlen(record->name), seed0, seed1);
 }
 
-void get_user_id_and_name() {
-    struct passwd* pwd;
-    uid = geteuid();
-    pwd = getpwuid(uid);
-    strcpy(user, pwd->pw_name);
-#ifdef DEBUG
-    puts(user);
-#endif
-}
-
 void get_user_process() {
     DIR* dir_ptr;
     struct dirent* dirent_ptr;
@@ -70,8 +58,10 @@ void get_user_process() {
     struct tm* date;
     time_t now;
     time_t timebuf;
+    uid_t uid;
 
-    time(&now);
+    uid = geteuid();
+    now = time(NULL);
 
     if ((dir_ptr = opendir("/proc")) == NULL) {
         perror("opendir");
@@ -80,7 +70,7 @@ void get_user_process() {
 
     while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
         if (is_number_string(dirent_ptr->d_name)) {
-            if (is_user_process(&statbuf, dirent_ptr->d_name)) {
+            if (is_user_process(&statbuf, dirent_ptr->d_name, uid)) {
                 timebuf = now - statbuf.st_ctime;
                 date = localtime(&timebuf);
 #ifdef DEBUG
@@ -102,7 +92,7 @@ bool is_number_string(char* str) {
     return true;
 }
 
-bool is_user_process(struct stat* info, char* pid_str) {
+bool is_user_process(struct stat* info, char* pid_str, int uid) {
     char pid_path[32];
     sprintf(pid_path, "/proc/%s", pid_str);
     stat(pid_path, info);
@@ -131,15 +121,13 @@ int main() {
     struct stat info;
     char pid_str[32];
     char namebuf[32];
+    uid_t uid;
 
-    struct hashmap* curr;
+    struct hashmap* map;
     name_start_time* record;
     struct tm* date;
     size_t iter;
     void* item;
-
-    // test get_user_id_and_name
-    get_user_id_and_name();
 
     // test is_number_string
     puts(is_number_string("1234") ? "true" : "false");
@@ -148,10 +136,11 @@ int main() {
     puts(is_number_string("one2three4") ? "true" : "false");
 
     // test is_user_process
+    uid = getegid();
     sprintf(pid_str, "%d", getpid());
-    puts(is_user_process(&info, pid_str) ? "true" : "false");
+    puts(is_user_process(&info, pid_str, uid) ? "true" : "false");
     sprintf(pid_str, "%d", 1);
-    puts(is_user_process(&info, pid_str) ? "true" : "false");
+    puts(is_user_process(&info, pid_str, uid) ? "true" : "false");
 
     // test get_user_process
     get_user_process();
@@ -160,40 +149,40 @@ int main() {
     get_process_name_by_pid_string(namebuf, "1");
 
     // test hashmap
-    curr = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    map = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 
-    hashmap_set(curr, &(name_start_time){.start_time = 10000, .name = "one"});
-    hashmap_set(curr, &(name_start_time){.start_time = 20000, .name = "two"});
-    hashmap_set(curr, &(name_start_time){.start_time = 30000, .name = "three"});
+    hashmap_set(map, &(name_start_time){.start_time = 10000, .name = "one"});
+    hashmap_set(map, &(name_start_time){.start_time = 20000, .name = "two"});
+    hashmap_set(map, &(name_start_time){.start_time = 30000, .name = "three"});
 
     printf("\n-- get some records --\n");
 
-    record = hashmap_get(curr, &(name_start_time){.name = "one"});
+    record = hashmap_get(map, &(name_start_time){.name = "one"});
     date = localtime(&(record->start_time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 
-    record = hashmap_get(curr, &(name_start_time){.name = "two"});
+    record = hashmap_get(map, &(name_start_time){.name = "two"});
     date = localtime(&(record->start_time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 
-    record = hashmap_get(curr, &(name_start_time){.name = "three"});
+    record = hashmap_get(map, &(name_start_time){.name = "three"});
     date = localtime(&(record->start_time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 
-    record = hashmap_get(curr, &(name_start_time){.name = "four"});
+    record = hashmap_get(map, &(name_start_time){.name = "four"});
     printf("%s\n", record ? "exists" : "not exists");
 
     printf("\n-- iterate over all records (hashmap_scan) --\n");
-    hashmap_scan(curr, record_iter, NULL);
+    hashmap_scan(map, record_iter, NULL);
 
     printf("\n-- iterate over all records (hashmap_iter) --\n");
     iter = 0;
-    while (hashmap_iter(curr, &iter, &item)) {
+    while (hashmap_iter(map, &iter, &item)) {
         const name_start_time* record = item;
         date = localtime(&(record->start_time));
         printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
     }
 
-    hashmap_free(curr);
+    hashmap_free(map);
 }
 #endif
