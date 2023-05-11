@@ -24,6 +24,7 @@ void get_user_name();
 void get_user_process();
 int is_number_string(char*);
 int is_user_process(struct stat*, char*);
+void get_process_name_by_pid_string(char*, char*);
 
 uid_t uid;
 char user[32];
@@ -85,10 +86,25 @@ int is_user_process(struct stat* info, char* pid_str) {
         return 0;
 }
 
+void get_process_name_by_pid_string(char* namebuf, char* pid_str) {
+    char status_path[32];
+    FILE* fp;
+
+    sprintf(status_path, "/proc/%s/status", pid_str);
+    fp = fopen(status_path, "r");
+    fscanf(fp, "%s", namebuf);
+    fscanf(fp, "%s", namebuf);
+    fclose(fp);
+#ifdef DEBUG
+    puts(namebuf);
+#endif
+}
+
 #ifdef DEBUG
 int main() {
     struct stat info;
     char pid_str[32];
+    char namebuf[32];
 
     // test get_user_id_and_name
     get_user_id_and_name();
@@ -105,6 +121,10 @@ int main() {
     sprintf(pid_str, "%d", 1);
     puts(is_user_process(&info, pid_str) ? "true" : "false");
 
+    // test get_user_process
     get_user_process();
+
+    // test get_process_name_by_pid_string
+    get_process_name_by_pid_string(namebuf, "1");
 }
 #endif
