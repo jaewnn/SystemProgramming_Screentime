@@ -27,8 +27,8 @@ int record_compare(const void*, const void*, void*);
 bool record_iter(const void*, void*);
 void get_user_name();
 void get_user_process();
-int is_number_string(char*);
-int is_user_process(struct stat*, char*);
+bool is_number_string(char*);
+bool is_user_process(struct stat*, char*);
 void get_process_name_by_pid_string(char*, char*);
 
 uid_t uid;
@@ -92,23 +92,23 @@ void get_user_process() {
     closedir(dir_ptr);
 }
 
-int is_number_string(char* str) {
+bool is_number_string(char* str) {
     int i = 0;
     while (str[i] != '\0') {
-        if (!isdigit(str[i])) return 0;
+        if (!isdigit(str[i])) return false;
         i++;
     }
-    return 1;
+    return true;
 }
 
-int is_user_process(struct stat* info, char* pid_str) {
+bool is_user_process(struct stat* info, char* pid_str) {
     char pid_path[32];
     sprintf(pid_path, "/proc/%s", pid_str);
     stat(pid_path, info);
     if (info->st_uid == uid)
-        return 1;
+        return true;
     else
-        return 0;
+        return false;
 }
 
 void get_process_name_by_pid_string(char* namebuf, char* pid_str) {
