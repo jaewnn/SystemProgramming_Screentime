@@ -25,6 +25,7 @@ typedef struct {
 
 int record_compare(const void*, const void*, void*);
 bool record_iter(const void*, void*);
+uint64_t record_hash(const void*, uint64_t, uint64_t);
 void get_user_name();
 void get_user_process();
 bool is_number_string(char*);
@@ -34,23 +35,23 @@ void get_process_name_by_pid_string(char*, char*);
 uid_t uid;
 char user[32];
 
-// int record_compare(const void* a, const void* b, void* rdata) {
-//     const name_start_time* ra = a;
-//     const name_start_time* rb = b;
-//     return strcmp(ra->name, rb->name);
-// }
+int record_compare(const void* a, const void* b, void* rdata) {
+    const name_start_time* ra = a;
+    const name_start_time* rb = b;
+    return strcmp(ra->name, rb->name);
+}
 
-// bool record_iter(const void* item, void* rdata) {
-//     const name_start_time* record = item;
-//     struct tm* date = localtime(&(record->start_time));
-//     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
-//     return true;
-// }
+bool record_iter(const void* item, void* rdata) {
+    const name_start_time* record = item;
+    struct tm* date = localtime(&(record->start_time));
+    printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+    return true;
+}
 
-// uint64_t user_hash(const void* item, uint64_t seed0, uint64_t seed1) {
-//     const name_start_time* record = item;
-//     return hashmap_sip(record->name, strlen(record->name), seed0, seed1);
-// }
+uint64_t record_hash(const void* item, uint64_t seed0, uint64_t seed1) {
+    const name_start_time* record = item;
+    return hashmap_sip(record->name, strlen(record->name), seed0, seed1);
+}
 
 void get_user_id_and_name() {
     struct passwd* pwd;
@@ -131,6 +132,12 @@ int main() {
     char pid_str[32];
     char namebuf[32];
 
+    struct hashmap* curr;
+    name_start_time* record;
+    struct tm* date;
+    size_t iter;
+    void* item;
+
     // test get_user_id_and_name
     get_user_id_and_name();
 
@@ -151,5 +158,42 @@ int main() {
 
     // test get_process_name_by_pid_string
     get_process_name_by_pid_string(namebuf, "1");
+
+    // test hashmap
+    curr = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+
+    hashmap_set(curr, &(name_start_time){.start_time = 10000, .name = "one"});
+    hashmap_set(curr, &(name_start_time){.start_time = 20000, .name = "two"});
+    hashmap_set(curr, &(name_start_time){.start_time = 30000, .name = "three"});
+
+    printf("\n-- get some records --\n");
+
+    record = hashmap_get(curr, &(name_start_time){.name = "one"});
+    date = localtime(&(record->start_time));
+    printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+
+    record = hashmap_get(curr, &(name_start_time){.name = "two"});
+    date = localtime(&(record->start_time));
+    printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+
+    record = hashmap_get(curr, &(name_start_time){.name = "three"});
+    date = localtime(&(record->start_time));
+    printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+
+    record = hashmap_get(curr, &(name_start_time){.name = "four"});
+    printf("%s\n", record ? "exists" : "not exists");
+
+    printf("\n-- iterate over all records (hashmap_scan) --\n");
+    hashmap_scan(curr, record_iter, NULL);
+
+    printf("\n-- iterate over all records (hashmap_iter) --\n");
+    iter = 0;
+    while (hashmap_iter(curr, &iter, &item)) {
+        const name_start_time* record = item;
+        date = localtime(&(record->start_time));
+        printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+    }
+
+    hashmap_free(curr);
 }
 #endif
