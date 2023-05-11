@@ -21,6 +21,7 @@ typedef struct {
 void get_user_name();
 void get_user_process();
 int is_number_string(char*);
+int is_user_process(struct stat*, char*);
 
 uid_t uid;
 char user[32];
@@ -60,19 +61,34 @@ int is_number_string(char* str) {
     return 1;
 }
 
-// int is_user_process(struct stat* info, char* pid_str) {
-//     char pid_path[32];
-//     sprintf(pid_path, "/proc/%s", pid_str);
-//     stat(pid_path, info);
-//     if (strcmp(info->st_uid))
-// }
+int is_user_process(struct stat* info, char* pid_str) {
+    char pid_path[32];
+    sprintf(pid_path, "/proc/%s", pid_str);
+    stat(pid_path, info);
+    if (info->st_uid == uid)
+        return 1;
+    else
+        return 0;
+}
 
 #ifdef DEBUG
 int main() {
-    get_user_name();
+    struct stat info;
+    char pid_str[32];
+
+    // test get_user_id_and_name
+    get_user_id_and_name();
+
+    // test is_number_string
     puts(is_number_string("1234") ? "true" : "false");
     puts(is_number_string("onetwothreefour") ? "true" : "false");
     puts(is_number_string("1two3four") ? "true" : "false");
     puts(is_number_string("one2three4") ? "true" : "false");
+
+    // test is_user_process
+    sprintf(pid_str, "%d", getpid());
+    puts(is_user_process(&info, pid_str) ? "true" : "false");
+    sprintf(pid_str, "%d", 1);
+    puts(is_user_process(&info, pid_str) ? "true" : "false");
 }
 #endif
