@@ -65,11 +65,10 @@ void cleanup() {
 }
 
 void get_user_process() {
+    uid_t uid;
     DIR* dir_ptr;
     struct dirent* dirent_ptr;
     struct stat statbuf;
-    struct tm* date;
-    uid_t uid;
     name_start_time record;
     name_start_time record_arg;
     name_start_time* record_ptr;
