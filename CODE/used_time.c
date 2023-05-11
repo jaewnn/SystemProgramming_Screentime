@@ -1,13 +1,11 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <pwd.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#ifdef DEBUG
-#include <stdio.h>
-#endif
 
 typedef struct {
     int start_time;
@@ -24,11 +22,13 @@ void get_user_name();
 void get_user_process();
 int is_number_string(char*);
 
+uid_t uid;
 char user[32];
 
-void get_user_name() {
-    uid_t uid = getegid();
-    struct passwd* pwd = getpwuid(uid);
+void get_user_id_and_name() {
+    struct passwd* pwd;
+    uid = geteuid();
+    pwd = getpwuid(uid);
     strcpy(user, pwd->pw_name);
 #ifdef DEBUG
     puts(user);
@@ -45,6 +45,9 @@ void get_user_name() {
 //     }
 
 //     while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
+//         if (is_number_string(dirent_ptr->d_name)) {
+
+//         }
 //     }
 // }
 
@@ -56,6 +59,13 @@ int is_number_string(char* str) {
     }
     return 1;
 }
+
+// int is_user_process(struct stat* info, char* pid_str) {
+//     char pid_path[32];
+//     sprintf(pid_path, "/proc/%s", pid_str);
+//     stat(pid_path, info);
+//     if (strcmp(info->st_uid))
+// }
 
 #ifdef DEBUG
 int main() {
