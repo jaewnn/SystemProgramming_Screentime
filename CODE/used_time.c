@@ -30,7 +30,7 @@ void compare_curr_prev();
 void process_executed(char*, time_t, time_t);
 void process_running(char*, time_t, time_t);
 void process_terminated(char*, time_t, time_t);
-void get_total_usage_time();
+struct hashmap* get_total_usage_time();
 void read_map_from_file(struct hashmap*, char*);
 void write_map_to_file(struct hashmap*, char*);
 void read_user_process_from_file();
@@ -221,7 +221,7 @@ void process_terminated(char* name, time_t start_time, time_t now) {
     hashmap_set(usage_time_accumulated, &record);
 }
 
-void get_total_usage_time() {
+struct hashmap* get_total_usage_time() {
     struct hashmap* total;
     size_t iter;
     void* item;
@@ -253,7 +253,7 @@ void get_total_usage_time() {
         }
     }
 
-    hashmap_free(total);
+    return total;
 }
 
 void read_map_from_file(struct hashmap* map, char* filename) {
@@ -331,6 +331,15 @@ void read_user_process_from_file() {
     hashmap_scan(usage_time_accumulated, record_iter, NULL);
 #endif
 }
+
+// void write_user_process_to_file() {
+//     time_t now = time(NULL);
+//     struct tm* date = localtime(&now);
+//     char filename[32];
+
+//     sprintf(filename, "usage_time_%d.log", date->tm_wday);
+//     read_map_from_file(usage_time_accumulated, filename);
+// }
 
 #ifdef DEBUG
 int main() {
