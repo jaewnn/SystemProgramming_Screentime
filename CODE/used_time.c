@@ -27,9 +27,14 @@ bool is_number_string(char*);
 bool is_user_process(struct stat*, char*, int);
 void get_process_name_by_pid_string(char*, char*);
 void compare_curr_prev();
+void process_executed(char*, time_t, time_t);
+void process_running(char*, time_t, time_t);
+void process_terminated(char*, time_t, time_t);
 
-struct hashmap* curr;
-struct hashmap* prev;
+struct hashmap* start_time_curr;
+struct hashmap* start_time_prev;
+struct hashmap* usage_time_accumulated;
+struct hashmap* usage_time_from_runtime;
 
 int record_compare(const void* a, const void* b, void* rdata) {
     const name_time* ra = a;
@@ -50,13 +55,17 @@ uint64_t record_hash(const void* item, uint64_t seed0, uint64_t seed1) {
 }
 
 void setup() {
-    curr = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
-    prev = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    start_time_curr = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    start_time_prev = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    usage_time_accumulated = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    usage_time_from_runtime = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 }
 
 void cleanup() {
-    hashmap_free(curr);
-    hashmap_free(prev);
+    hashmap_free(start_time_curr);
+    hashmap_free(start_time_prev);
+    hashmap_free(usage_time_accumulated);
+    hashmap_free(usage_time_from_runtime);
 }
 
 void get_user_process() {
@@ -82,19 +91,19 @@ void get_user_process() {
                 get_process_name_by_pid_string(record.name, dirent_ptr->d_name);
 
                 strcpy(record_arg.name, record.name);
-                record_ptr = hashmap_get(curr, &record_arg);
+                record_ptr = hashmap_get(start_time_curr, &record_arg);
 
                 // 한 프로그램에 대해 여러 개의 프로세스가 실행된 경우, 더 일찍 실행된 프로세스를 선택함
                 if (record_ptr) {
                     if (record.time < record_ptr->time) {
-                        hashmap_delete(curr, &record_arg);
-                        hashmap_set(curr, &record);
+                        hashmap_delete(start_time_curr, &record_arg);
+                        hashmap_set(start_time_curr, &record);
                     }
 #ifdef DEBUG
                     puts("hashmap conflicted!!!");
 #endif
                 } else {
-                    hashmap_set(curr, &record);
+                    hashmap_set(start_time_curr, &record);
                 }
             }
         }
@@ -103,7 +112,7 @@ void get_user_process() {
     closedir(dir_ptr);
 
 #ifdef DEBUG
-    hashmap_scan(curr, record_iter, NULL);
+    hashmap_scan(start_time_curr, record_iter, NULL);
 #endif
 }
 
@@ -142,45 +151,70 @@ void get_process_name_by_pid_string(char* namebuf, char* pid_str) {
 }
 
 void compare_curr_prev() {
+    time_t now = time(NULL);
     size_t iter;
     void* item;
     struct hashmap* map_ptr;
 
     iter = 0;
-    while (hashmap_iter(curr, &iter, &item)) {
+    while (hashmap_iter(start_time_curr, &iter, &item)) {
         const name_time* record_ptr = item;
-        if (hashmap_get(prev, record_ptr)) {
+        if (hashmap_get(start_time_prev, record_ptr)) {
+            process_running((char*)(record_ptr->name), record_ptr->time, now);
 #ifdef DEBUG
             puts("both");
 #endif
         } else {
+            process_executed((char*)(record_ptr->name), record_ptr->time, now);
 #ifdef DEBUG
-            puts("curr");
+            puts("start_time_curr");
 #endif
         }
     }
 
     iter = 0;
-    while (hashmap_iter(prev, &iter, &item)) {
+    while (hashmap_iter(start_time_prev, &iter, &item)) {
         const name_time* record_ptr = item;
-        if (!hashmap_get(curr, record_ptr)) {
+        if (!hashmap_get(start_time_curr, record_ptr)) {
+            process_terminated((char*)(record_ptr->name), record_ptr->time, now);
 #ifdef DEBUG
-            puts("prev");
+            puts("start_time_prev");
 #endif
         }
     }
 
-    map_ptr = prev;
-    prev = curr;
-    curr = map_ptr;
-    hashmap_clear(curr, false);
+    map_ptr = start_time_prev;
+    start_time_prev = start_time_curr;
+    start_time_curr = map_ptr;
+    hashmap_clear(start_time_curr, false);
 
 #ifdef DEBUG
-    printf("\n-- iterate over all records in curr (hashmap_scan) --\n");
-    hashmap_scan(curr, record_iter, NULL);
-    printf("\n-- iterate over all records in prev (hashmap_scan) --\n");
-    hashmap_scan(prev, record_iter, NULL);
+    printf("\n-- iterate over all records in start_time_curr (hashmap_scan) --\n");
+    hashmap_scan(start_time_curr, record_iter, NULL);
+    printf("\n-- iterate over all records in start_time_prev (hashmap_scan) --\n");
+    hashmap_scan(start_time_prev, record_iter, NULL);
 #endif
+}
+
+void process_executed(char* name, time_t start_time, time_t now) {
+    name_time record;
+    record.time = now - start_time;
+    strcpy(record.name, name);
+    hashmap_set(usage_time_from_runtime, &record);
+}
+
+void process_running(char* name, time_t start_time, time_t now) {
+    name_time record;
+    record.time = now - start_time;
+    strcpy(record.name, name);
+    hashmap_set(usage_time_from_runtime, &record);
+}
+
+void process_terminated(char* name, time_t start_time, time_t now) {
+    name_time record;
+    record.time = now - start_time;
+    strcpy(record.name, name);
+    hashmap_set(usage_time_accumulated, &record);
 }
 
 #ifdef DEBUG
