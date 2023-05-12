@@ -31,6 +31,9 @@ void process_executed(char*, time_t, time_t);
 void process_running(char*, time_t, time_t);
 void process_terminated(char*, time_t, time_t);
 void get_total_usage_time();
+void read_map_from_file(struct hashmap*, char*);
+void write_map_to_file(struct hashmap*, char*);
+void read_user_process_from_file();
 
 struct hashmap* start_time_curr;
 struct hashmap* start_time_prev;
@@ -257,10 +260,8 @@ void read_map_from_file(struct hashmap* map, char* filename) {
     FILE* fp = fopen(filename, "r");
     name_time record;
 
-    if (fp == NULL) {
-        perror("fopen");
-        exit(1);
-    }
+    // 최초 실행 시, 로그 파일이 존재하지 않을 수 있음
+    if (fp == NULL) return;
 
     while (!feof(fp)) {
         fscanf(fp, "%s %ld\n", record.name, &record.time);
@@ -286,6 +287,49 @@ void write_map_to_file(struct hashmap* map, char* filename) {
     }
 
     fclose(fp);
+}
+
+void read_user_process_from_file() {
+    time_t now = time(NULL);
+    struct tm* date = localtime(&now);
+    char filename[32];
+    struct hashmap* start_time_from_file;
+    size_t iter = 0;
+    void* item;
+
+    get_user_process();
+
+    sprintf(filename, "usage_time_%d.log", date->tm_wday);
+    read_map_from_file(usage_time_accumulated, filename);
+
+    // 프로그램을 시작한 시점에, 실행 중인 프로세스의 실행 시간을 누적 시간에서 제외함
+    start_time_from_file = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    sprintf(filename, "start_time_%d.log", date->tm_wday);
+    read_map_from_file(start_time_from_file, filename);
+
+    while (hashmap_iter(start_time_from_file, &iter, &item)) {
+        const name_time* record_from_file = item;
+        const name_time* record_from_memory = hashmap_get(start_time_curr, record_from_file);
+
+        if (record_from_memory) {
+            if (record_from_memory->time == record_from_file->time) {
+                const name_time* record_accumulated = hashmap_get(usage_time_accumulated, record_from_file);
+                name_time recordbuf;
+                recordbuf.time = record_accumulated->time - record_from_file->time;
+                strcpy(recordbuf.name, record_from_file->name);
+                hashmap_set(usage_time_accumulated, &recordbuf);
+            }
+        }
+    }
+
+    hashmap_free(start_time_from_file);
+
+#ifdef DEBUG
+    printf("\n-- iterate over all records in start_time_curr (hashmap_scan) --\n");
+    hashmap_scan(start_time_curr, record_iter, NULL);
+    printf("\n-- iterate over all records in usage_time_accumulated (hashmap_scan) --\n");
+    hashmap_scan(usage_time_accumulated, record_iter, NULL);
+#endif
 }
 
 #ifdef DEBUG
@@ -365,6 +409,9 @@ int main() {
 
     // test get_total_usage_time
     get_total_usage_time();
+
+    // test read_user_process_from_file
+    read_user_process_from_file();
 
     // cleanup global variables
     cleanup();
