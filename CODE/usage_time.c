@@ -414,22 +414,22 @@ int main() {
 }
 #endif
 
-// #ifdef WORKFLOW
-// int main() {
-//     /*==============================    workflow    ==============================*/
-//     setup();
-//     read_user_process_from_file();
-//     // scan_maps();
-//     // for (int i = 0; i < 10; i++) {
-//     //     sleep(10);
-//     get_user_process();
-//     // scan_maps();
-//     compare_curr_prev();
-//     // scan_maps();
-//         write_user_process_to_file();
-//         scan_maps();
-//     // }
-//     cleanup();
-//     /*============================================================================*/
-// }
-// #endif
+#ifdef WORKFLOW
+int main() {
+    /*==============================    workflow    ==============================*/
+    setup();
+    read_user_process_from_file();
+    // scan_maps();
+    // for (int i = 0; i < 10; i++) {
+    //     sleep(10);
+    get_user_process();
+    // scan_maps();
+    compare_curr_prev();
+    // scan_maps();
+        write_user_process_to_file();
+        scan_maps();
+    // }
+    cleanup();
+    /*============================================================================*/
+}
+#endif
