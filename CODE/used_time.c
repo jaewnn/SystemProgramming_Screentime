@@ -332,14 +332,19 @@ void read_user_process_from_file() {
 #endif
 }
 
-// void write_user_process_to_file() {
-//     time_t now = time(NULL);
-//     struct tm* date = localtime(&now);
-//     char filename[32];
+void write_user_process_to_file() {
+    time_t now = time(NULL);
+    struct tm* date = localtime(&now);
+    char filename[32];
+    struct hashmap* total = get_total_usage_time();
 
-//     sprintf(filename, "usage_time_%d.log", date->tm_wday);
-//     read_map_from_file(usage_time_accumulated, filename);
-// }
+    sprintf(filename, "usage_time_%d.log", date->tm_wday);
+    write_map_to_file(total, filename);
+    hashmap_free(total);
+
+    sprintf(filename, "start_time_%d.log", date->tm_wday);
+    write_map_to_file(start_time_curr, filename);
+}
 
 #ifdef DEBUG
 int main() {
@@ -421,6 +426,9 @@ int main() {
 
     // test read_user_process_from_file
     read_user_process_from_file();
+
+    // test write_user_process_to_file
+    write_user_process_to_file();
 
     // cleanup global variables
     cleanup();
