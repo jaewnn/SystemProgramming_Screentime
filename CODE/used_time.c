@@ -32,6 +32,7 @@ void get_user_process();
 bool is_number_string(char*);
 bool is_user_process(struct stat*, char*, int);
 void get_process_name_by_pid_string(char*, char*);
+void compare_curr_prev();
 
 struct hashmap* curr;
 struct hashmap* prev;
@@ -146,6 +147,48 @@ void get_process_name_by_pid_string(char* namebuf, char* pid_str) {
 #endif
 }
 
+void compare_curr_prev() {
+    size_t iter;
+    void* item;
+    struct hashmap* map_ptr;
+
+    iter = 0;
+    while (hashmap_iter(curr, &iter, &item)) {
+        const name_start_time* record_ptr = item;
+        if (hashmap_get(prev, record_ptr)) {
+#ifdef DEBUG
+            puts("both");
+#endif
+        } else {
+#ifdef DEBUG
+            puts("curr");
+#endif
+        }
+    }
+
+    iter = 0;
+    while (hashmap_iter(prev, &iter, &item)) {
+        const name_start_time* record_ptr = item;
+        if (!hashmap_get(curr, record_ptr)) {
+#ifdef DEBUG
+            puts("prev");
+#endif
+        }
+    }
+
+    map_ptr = prev;
+    prev = curr;
+    curr = map_ptr;
+    hashmap_clear(curr, false);
+
+#ifdef DEBUG
+    printf("\n-- iterate over all records in curr (hashmap_scan) --\n");
+    hashmap_scan(curr, record_iter, NULL);
+    printf("\n-- iterate over all records in prev (hashmap_scan) --\n");
+    hashmap_scan(prev, record_iter, NULL);
+#endif
+}
+
 #ifdef DEBUG
 int main() {
     struct stat info;
@@ -217,6 +260,9 @@ int main() {
 
     // test get_user_process
     get_user_process();
+
+    // test compare_curr_prev
+    compare_curr_prev();
 
     // cleanup global variables
     cleanup();
