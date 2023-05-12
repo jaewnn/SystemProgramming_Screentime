@@ -282,6 +282,7 @@ void read_user_process_from_file() {
         }
     }
 
+    compare_curr_prev();
     hashmap_free(start_time_from_file);
 
 #ifdef DEBUG
@@ -304,6 +305,24 @@ void write_user_process_to_file() {
 
     sprintf(filename, "start_time_%d.log", date->tm_wday);
     write_map_to_file(start_time_curr, filename);
+}
+
+void scan_maps() {
+    puts("### scan start_time_curr ###");
+    hashmap_scan(start_time_curr, record_iter, NULL);
+    puts("");
+
+    puts("### scan start_time_prev ###");
+    hashmap_scan(start_time_prev, record_iter, NULL);
+    puts("");
+
+    puts("### scan usage_time_accumulated ###");
+    hashmap_scan(usage_time_accumulated, record_iter, NULL);
+    puts("");
+
+    puts("### scan usage_time_from_runtime ###");
+    hashmap_scan(usage_time_from_runtime, record_iter, NULL);
+    puts("");
 }
 
 #ifdef DEBUG
@@ -390,15 +409,27 @@ int main() {
     // test write_user_process_to_file
     write_user_process_to_file();
 
-    // test workflow
-
-    // setup();
-
-    for (int i = 0; i < 10; i++) {
-    }
-    // cleanup();
-
     // cleanup global variables
     cleanup();
 }
 #endif
+
+// #ifdef WORKFLOW
+// int main() {
+//     /*==============================    workflow    ==============================*/
+//     setup();
+//     read_user_process_from_file();
+//     // scan_maps();
+//     // for (int i = 0; i < 10; i++) {
+//     //     sleep(10);
+//     get_user_process();
+//     // scan_maps();
+//     compare_curr_prev();
+//     // scan_maps();
+//         write_user_process_to_file();
+//         scan_maps();
+//     // }
+//     cleanup();
+//     /*============================================================================*/
+// }
+// #endif
