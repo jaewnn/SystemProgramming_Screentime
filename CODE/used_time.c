@@ -270,6 +270,24 @@ void read_map_from_file(struct hashmap* map, char* filename) {
     fclose(fp);
 }
 
+void write_map_to_file(struct hashmap* map, char* filename) {
+    FILE* fp = fopen(filename, "w");
+    size_t iter = 0;
+    void* item;
+
+    if (fp == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+
+    while (hashmap_iter(map, &iter, &item)) {
+        const name_time* record_ptr = item;
+        fprintf(fp, "%s %ld\n", record_ptr->name, record_ptr->time);
+    }
+
+    fclose(fp);
+}
+
 #ifdef DEBUG
 int main() {
     struct stat info;
