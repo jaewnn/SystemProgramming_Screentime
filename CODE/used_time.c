@@ -30,6 +30,7 @@ void compare_curr_prev();
 void process_executed(char*, time_t, time_t);
 void process_running(char*, time_t, time_t);
 void process_terminated(char*, time_t, time_t);
+void get_total_usage_time();
 
 struct hashmap* start_time_curr;
 struct hashmap* start_time_prev;
@@ -217,6 +218,41 @@ void process_terminated(char* name, time_t start_time, time_t now) {
     hashmap_set(usage_time_accumulated, &record);
 }
 
+void get_total_usage_time() {
+    struct hashmap* total;
+    size_t iter;
+    void* item;
+    name_time record;
+
+    total = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+
+    iter = 0;
+    while (hashmap_iter(usage_time_accumulated, &iter, &item)) {
+        const name_time* record_accumulated = item;
+        const name_time* record_from_runtime = hashmap_get(usage_time_from_runtime, record_accumulated);
+
+        if (record_from_runtime) {
+            record.time = record_accumulated->time + record_from_runtime->time;
+            strcpy(record.name, record_accumulated->name);
+            hashmap_set(total, &record);
+        } else {
+            hashmap_set(total, record_accumulated);
+        }
+    }
+
+    iter = 0;
+    while (hashmap_iter(usage_time_from_runtime, &iter, &item)) {
+        const name_time* record_from_runtime = item;
+        const name_time* record_accumulated = hashmap_get(usage_time_accumulated, record_from_runtime);
+
+        if (!record_accumulated) {
+            hashmap_set(total, record_from_runtime);
+        }
+    }
+
+    hashmap_free(total);
+}
+
 #ifdef DEBUG
 int main() {
     struct stat info;
@@ -291,6 +327,9 @@ int main() {
 
     // test compare_curr_prev
     compare_curr_prev();
+
+    // test get_total_usage_time
+    get_total_usage_time();
 
     // cleanup global variables
     cleanup();
