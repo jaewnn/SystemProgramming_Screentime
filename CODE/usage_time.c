@@ -218,7 +218,9 @@ struct hashmap* get_total_usage_time() {
 
 void read_map_from_file(struct hashmap* map, char* filename) {
     FILE* fp = fopen(filename, "r");
-    name_time record;
+    name_time record = {
+        0,
+    };
 
     // 최초 실행 시, 로그 파일이 존재하지 않을 수 있음
     if (fp == NULL) return;
@@ -251,18 +253,24 @@ void write_map_to_file(struct hashmap* map, char* filename) {
 
 void read_user_process_from_file() {
     time_t now = time(NULL);
+    time_t last_accessed;
     struct tm* date = localtime(&now);
     char filename[32];
     struct hashmap* start_time_from_file;
     size_t iter = 0;
     void* item;
 
+    FILE* fp = fopen("last_accessed", "r");
+    if (fp == NULL) return;
+    fscanf(fp, "%ld\n", &last_accessed);
+    fclose(fp);
+
     get_user_process();
 
     sprintf(filename, "usage_time_%d.log", date->tm_wday);
     read_map_from_file(usage_time_accumulated, filename);
 
-    // 프로그램을 시작한 시점에, 실행 중인 프로세스의 실행 시간을 누적 시간에서 제외함
+    // 프로그램을 시작한 시점에 이미 실행 중인 프로세스의 실행 시간 중, 누적 시간에 포함된 부분을 제외함
     start_time_from_file = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     sprintf(filename, "start_time_%d.log", date->tm_wday);
     read_map_from_file(start_time_from_file, filename);
@@ -275,7 +283,7 @@ void read_user_process_from_file() {
             if (record_from_memory->time == record_from_file->time) {
                 const name_time* record_accumulated = hashmap_get(usage_time_accumulated, record_from_file);
                 name_time recordbuf;
-                recordbuf.time = record_accumulated->time - record_from_file->time;
+                recordbuf.time = record_accumulated->time - (last_accessed - record_from_file->time);
                 strcpy(recordbuf.name, record_from_file->name);
                 hashmap_set(usage_time_accumulated, &recordbuf);
             }
@@ -299,12 +307,16 @@ void write_user_process_to_file() {
     char filename[32];
     struct hashmap* total = get_total_usage_time();
 
+    FILE* fp = fopen("last_accessed", "w");
+    fprintf(fp, "%ld\n", now);
+    fclose(fp);
+
     sprintf(filename, "usage_time_%d.log", date->tm_wday);
     write_map_to_file(total, filename);
     hashmap_free(total);
 
     sprintf(filename, "start_time_%d.log", date->tm_wday);
-    write_map_to_file(start_time_curr, filename);
+    write_map_to_file(start_time_prev, filename);
 }
 
 void scan_maps() {
@@ -419,15 +431,23 @@ int main() {
     /*==============================    workflow    ==============================*/
     setup();
     read_user_process_from_file();
-    // scan_maps();
+    puts("read");
+    scan_maps();
+    puts("");
     // for (int i = 0; i < 10; i++) {
     //     sleep(10);
     get_user_process();
-    // scan_maps();
+    puts("get");
+    scan_maps();
+    puts("");
     compare_curr_prev();
-    // scan_maps();
-        write_user_process_to_file();
-        scan_maps();
+    puts("compare");
+    scan_maps();
+    puts("");
+    write_user_process_to_file();
+    puts("write");
+    scan_maps();
+    puts("");
     // }
     cleanup();
     /*============================================================================*/
