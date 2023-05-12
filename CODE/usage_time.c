@@ -426,29 +426,18 @@ int main() {
 }
 #endif
 
-#ifdef WORKFLOW
+#ifdef TEST
 int main() {
-    /*==============================    workflow    ==============================*/
+    /*==============================    TEST    ==============================*/
     setup();
     read_user_process_from_file();
-    puts("read");
-    scan_maps();
-    puts("");
-    // for (int i = 0; i < 10; i++) {
-    //     sleep(10);
-    get_user_process();
-    puts("get");
-    scan_maps();
-    puts("");
-    compare_curr_prev();
-    puts("compare");
-    scan_maps();
-    puts("");
-    write_user_process_to_file();
-    puts("write");
-    scan_maps();
-    puts("");
-    // }
+    for (int i = 0; i < 10; i++) {  // while (1)
+        sleep(5);                   // sleep(60)
+        get_user_process();
+        compare_curr_prev();
+        write_user_process_to_file();
+        puts("usage time recorded!!!");
+    }
     cleanup();
     /*============================================================================*/
 }
