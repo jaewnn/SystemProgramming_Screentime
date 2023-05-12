@@ -253,6 +253,23 @@ void get_total_usage_time() {
     hashmap_free(total);
 }
 
+void read_map_from_file(struct hashmap* map, char* filename) {
+    FILE* fp = fopen(filename, "r");
+    name_time record;
+
+    if (fp == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+
+    while (!feof(fp)) {
+        fscanf(fp, "%s %ld\n", record.name, &record.time);
+        hashmap_set(map, &record);
+    }
+
+    fclose(fp);
+}
+
 #ifdef DEBUG
 int main() {
     struct stat info;
