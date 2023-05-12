@@ -13,15 +13,9 @@
 #include "../hashmap.c/hashmap.h"
 
 typedef struct {
-    time_t start_time;
+    time_t time;
     char name[32];
-} name_start_time;
-
-typedef struct {
-    int week;
-    time_t usage_time;
-    char name[32];
-} name_usage_time;
+} name_time;
 
 int record_compare(const void*, const void*, void*);
 bool record_iter(const void*, void*);
@@ -38,26 +32,26 @@ struct hashmap* curr;
 struct hashmap* prev;
 
 int record_compare(const void* a, const void* b, void* rdata) {
-    const name_start_time* ra = a;
-    const name_start_time* rb = b;
+    const name_time* ra = a;
+    const name_time* rb = b;
     return strcmp(ra->name, rb->name);
 }
 
 bool record_iter(const void* item, void* rdata) {
-    const name_start_time* record = item;
-    struct tm* date = localtime(&(record->start_time));
+    const name_time* record = item;
+    struct tm* date = localtime(&(record->time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
     return true;
 }
 
 uint64_t record_hash(const void* item, uint64_t seed0, uint64_t seed1) {
-    const name_start_time* record = item;
+    const name_time* record = item;
     return hashmap_sip(record->name, strlen(record->name), seed0, seed1);
 }
 
 void setup() {
-    curr = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
-    prev = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    curr = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    prev = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 }
 
 void cleanup() {
@@ -70,9 +64,9 @@ void get_user_process() {
     DIR* dir_ptr;
     struct dirent* dirent_ptr;
     struct stat statbuf;
-    name_start_time record;
-    name_start_time record_arg;
-    name_start_time* record_ptr;
+    name_time record;
+    name_time record_arg;
+    name_time* record_ptr;
 
     uid = geteuid();
 
@@ -84,7 +78,7 @@ void get_user_process() {
     while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
         if (is_number_string(dirent_ptr->d_name)) {
             if (is_user_process(&statbuf, dirent_ptr->d_name, uid)) {
-                record.start_time = statbuf.st_ctime;
+                record.time = statbuf.st_ctime;
                 get_process_name_by_pid_string(record.name, dirent_ptr->d_name);
 
                 strcpy(record_arg.name, record.name);
@@ -92,7 +86,7 @@ void get_user_process() {
 
                 // 한 프로그램에 대해 여러 개의 프로세스가 실행된 경우, 더 일찍 실행된 프로세스를 선택함
                 if (record_ptr) {
-                    if (record.start_time < record_ptr->start_time) {
+                    if (record.time < record_ptr->time) {
                         hashmap_delete(curr, &record_arg);
                         hashmap_set(curr, &record);
                     }
@@ -154,7 +148,7 @@ void compare_curr_prev() {
 
     iter = 0;
     while (hashmap_iter(curr, &iter, &item)) {
-        const name_start_time* record_ptr = item;
+        const name_time* record_ptr = item;
         if (hashmap_get(prev, record_ptr)) {
 #ifdef DEBUG
             puts("both");
@@ -168,7 +162,7 @@ void compare_curr_prev() {
 
     iter = 0;
     while (hashmap_iter(prev, &iter, &item)) {
-        const name_start_time* record_ptr = item;
+        const name_time* record_ptr = item;
         if (!hashmap_get(curr, record_ptr)) {
 #ifdef DEBUG
             puts("prev");
@@ -197,7 +191,7 @@ int main() {
     uid_t uid;
 
     struct hashmap* map;
-    name_start_time* record;
+    name_time* record;
     struct tm* date;
     size_t iter;
     void* item;
@@ -219,27 +213,27 @@ int main() {
     get_process_name_by_pid_string(namebuf, "1");
 
     // test hashmap
-    map = hashmap_new(sizeof(name_start_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    map = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 
-    hashmap_set(map, &(name_start_time){.start_time = 10000, .name = "one"});
-    hashmap_set(map, &(name_start_time){.start_time = 20000, .name = "two"});
-    hashmap_set(map, &(name_start_time){.start_time = 30000, .name = "three"});
+    hashmap_set(map, &(name_time){.time = 10000, .name = "one"});
+    hashmap_set(map, &(name_time){.time = 20000, .name = "two"});
+    hashmap_set(map, &(name_time){.time = 30000, .name = "three"});
 
     printf("\n-- get some records --\n");
 
-    record = hashmap_get(map, &(name_start_time){.name = "one"});
-    date = localtime(&(record->start_time));
+    record = hashmap_get(map, &(name_time){.name = "one"});
+    date = localtime(&(record->time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 
-    record = hashmap_get(map, &(name_start_time){.name = "two"});
-    date = localtime(&(record->start_time));
+    record = hashmap_get(map, &(name_time){.name = "two"});
+    date = localtime(&(record->time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 
-    record = hashmap_get(map, &(name_start_time){.name = "three"});
-    date = localtime(&(record->start_time));
+    record = hashmap_get(map, &(name_time){.name = "three"});
+    date = localtime(&(record->time));
     printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 
-    record = hashmap_get(map, &(name_start_time){.name = "four"});
+    record = hashmap_get(map, &(name_time){.name = "four"});
     printf("%s\n", record ? "exists" : "not exists");
 
     printf("\n-- iterate over all records (hashmap_scan) --\n");
@@ -248,8 +242,8 @@ int main() {
     printf("\n-- iterate over all records (hashmap_iter) --\n");
     iter = 0;
     while (hashmap_iter(map, &iter, &item)) {
-        const name_start_time* record = item;
-        date = localtime(&(record->start_time));
+        const name_time* record = item;
+        date = localtime(&(record->time));
         printf("%s, started at %d/%d/%d %d:%d:%d\n", record->name, date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
     }
 
