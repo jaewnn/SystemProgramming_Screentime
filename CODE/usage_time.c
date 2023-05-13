@@ -162,14 +162,14 @@ void compare_curr_prev() {
 
 void process_executed(char* name, time_t start_time, time_t now) {
     name_time record;
-    record.time = now - start_time;
+    record.time = now - get_start_time_today(start_time, now);
     strcpy(record.name, name);
     hashmap_set(usage_time_from_runtime, &record);
 }
 
 void process_running(char* name, time_t start_time, time_t now) {
     name_time record;
-    record.time = now - start_time;
+    record.time = now - get_start_time_today(start_time, now);
     strcpy(record.name, name);
     hashmap_set(usage_time_from_runtime, &record);
 }
@@ -282,7 +282,7 @@ void read_user_process_from_file() {
             if (record_from_memory->time == record_from_file->time) {
                 const name_time* record_accumulated = hashmap_get(usage_time_accumulated, record_from_file);
                 name_time recordbuf;
-                recordbuf.time = record_accumulated->time - (last_accessed - record_from_file->time);
+                recordbuf.time = record_accumulated->time - (last_accessed - get_start_time_today(record_from_file->time, now));
                 strcpy(recordbuf.name, record_from_file->name);
                 hashmap_set(usage_time_accumulated, &recordbuf);
             }
@@ -334,6 +334,29 @@ void scan_maps() {
     puts("### scan usage_time_from_runtime ###");
     hashmap_scan(usage_time_from_runtime, record_iter, NULL);
     puts("");
+}
+
+time_t get_start_time_today(time_t start_time, time_t now) {
+    struct tm* start_time_tm_ptr = localtime(&start_time);
+    int start_time_mday = start_time_tm_ptr->tm_mday;
+
+    struct tm* now_tm_ptr = localtime(&now);
+    int now_mday = now_tm_ptr->tm_mday;
+
+    if (start_time_mday == now_mday)
+        return start_time;
+
+    struct tm tm_buf;
+    tm_buf.tm_sec = 0;
+    tm_buf.tm_min = 0;
+    tm_buf.tm_hour = 0;
+    tm_buf.tm_mday = now_tm_ptr->tm_mday;
+    tm_buf.tm_mon = now_tm_ptr->tm_mon;
+    tm_buf.tm_year = now_tm_ptr->tm_year;
+
+    time_t start_time_today = mktime(&tm_buf);
+
+    return start_time_today;
 }
 
 #ifdef DEBUG
@@ -430,9 +453,10 @@ int main() {
     /*==============================    TEST    ==============================*/
     setup();
     for (int i = 0; i < 10; i++) {  // while (1)
-        sleep(5);                   // sleep(60)
+        // sleep(5);                   // sleep(60)
         read_user_process_from_file();
         write_user_process_to_file();
+        scan_maps();
         puts("usage time recorded!!!");
     }
     cleanup();
