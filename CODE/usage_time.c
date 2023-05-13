@@ -282,7 +282,8 @@ void read_user_process_from_file() {
             if (record_from_memory->time == record_from_file->time) {
                 const name_time* record_accumulated = hashmap_get(usage_time_accumulated, record_from_file);
                 name_time recordbuf;
-                recordbuf.time = record_accumulated->time - (last_accessed - get_start_time_today(record_from_file->time, now));
+                time_t utime_duplicated = last_accessed - get_start_time_today(record_from_file->time, now);
+                recordbuf.time = record_accumulated->time - utime_duplicated;
                 strcpy(recordbuf.name, record_from_file->name);
                 hashmap_set(usage_time_accumulated, &recordbuf);
             }
@@ -346,15 +347,11 @@ time_t get_start_time_today(time_t start_time, time_t now) {
     if (start_time_mday == now_mday)
         return start_time;
 
-    struct tm tm_buf;
-    tm_buf.tm_sec = 0;
-    tm_buf.tm_min = 0;
-    tm_buf.tm_hour = 0;
-    tm_buf.tm_mday = now_tm_ptr->tm_mday;
-    tm_buf.tm_mon = now_tm_ptr->tm_mon;
-    tm_buf.tm_year = now_tm_ptr->tm_year;
+    now_tm_ptr->tm_sec = 0;
+    now_tm_ptr->tm_min = 0;
+    now_tm_ptr->tm_hour = 0;
 
-    time_t start_time_today = mktime(&tm_buf);
+    time_t start_time_today = mktime(now_tm_ptr);
 
     return start_time_today;
 }

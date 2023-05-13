@@ -36,6 +36,7 @@ void write_map_to_file(struct hashmap*, char*);
 void read_user_process_from_file();
 void write_user_process_to_file();
 void scan_maps();
+time_t get_start_time_today(time_t, time_t);
 
 struct hashmap* start_time_curr;
 struct hashmap* start_time_prev;
