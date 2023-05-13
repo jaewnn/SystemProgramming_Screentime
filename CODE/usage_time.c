@@ -176,9 +176,8 @@ void process_running(char* name, time_t start_time, time_t now) {
 
 void process_terminated(char* name, time_t start_time, time_t now) {
     name_time record;
-    record.time = now - start_time;
     strcpy(record.name, name);
-    hashmap_set(usage_time_accumulated, &record);
+    hashmap_delete(usage_time_from_runtime, &record);
 }
 
 struct hashmap* get_total_usage_time() {
@@ -430,11 +429,9 @@ int main() {
 int main() {
     /*==============================    TEST    ==============================*/
     setup();
-    read_user_process_from_file();
     for (int i = 0; i < 10; i++) {  // while (1)
         sleep(5);                   // sleep(60)
-        get_user_process();
-        compare_curr_prev();
+        read_user_process_from_file();
         write_user_process_to_file();
         puts("usage time recorded!!!");
     }
