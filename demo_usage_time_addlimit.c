@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     initscr();
 
     // usage time
-    setup();
+    setup_map();
 
     int key;
     while (1) {
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     }
 
     // usage time
-    cleanup();
+    cleanup_map();
 
     // curses
     endwin();

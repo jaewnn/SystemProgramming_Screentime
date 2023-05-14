@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     initscr();
 
     // usage time
-    setup();
+    setup_map();
 
     while (1) {
         sleep(1);
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     }
 
     // usage time
-    cleanup();
+    cleanup_map();
 
     // curses
     endwin();
