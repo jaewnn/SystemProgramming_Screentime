@@ -1,11 +1,9 @@
-/*
-gcc -o demo_usage_time demo_usage_time.c CODE/usage_time.c hashmap.c/hashmap.c -lcurses
- */
-
 #include <curses.h>
-#include <stdio.h>
+#include <dirent.h>
+#include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "CODE/usage_time.h"
 
@@ -21,16 +19,9 @@ int main(int argc, char* argv[]) {
     // curses
     initscr();
 
-    // usage time
-    setup_map();
-
     int key;
     while (1) {
         sleep(1);
-
-        // usage time
-        read_user_process_from_file();
-        write_user_process_to_file();
 
         // curses
         print_legend();
@@ -38,12 +29,9 @@ int main(int argc, char* argv[]) {
         print_menu();
         refresh();
 
-        sleep(3);
-        set_timeLimit();
+        // sleep(3);
+        // set_timeLimit();
     }
-
-    // usage time
-    cleanup_map();
 
     // curses
     endwin();
@@ -77,7 +65,7 @@ void print_data() {
     for (i = 7; i < LINES - 5; i++) {
         fscanf(fp, "%s %ld", name, &usage_time);
         date = localtime(&usage_time);
-        sprintf(str, "%-5d %-32s %02d:%02d:%02d ", i-6, name, (date->tm_mday - 1) * 24 + date->tm_hour - 9, date->tm_min, date->tm_sec);
+        sprintf(str, "%-5d %-32s %02d:%02d:%02d ", i - 6, name, (date->tm_mday - 1) * 24 + date->tm_hour - 9, date->tm_min, date->tm_sec);
         memset(blank, ' ', COLS);
         strncpy(blank, str, strlen(str));
         move(i, 0);
@@ -107,32 +95,30 @@ void print_menu() {
     refresh();
 }
 
-void set_timeLimit()
-{
+void set_timeLimit() {
     clear();
     refresh();
 
-    move(LINES/2, COLS/2);
+    move(LINES / 2, COLS / 2);
     standout();
     addnstr("Please Enter the NO of the process.", COLS);
     standend();
     refresh();
 
     int no;
-    scanf("%d", &no); // 제한시간을 걸 번호를 선택
+    scanf("%d", &no);  // 제한시간을 걸 번호를 선택
 
     clear();
     refresh();
 
-    move(LINES/2, COLS/2);
+    move(LINES / 2, COLS / 2);
     standout();
     addnstr("Please set the time limits (sec)", COLS);
     standend();
-    refresh(); // time limit 설정
+    refresh();  // time limit 설정
 
     time_t limit;
     scanf("%ld", &limit);
-
 
     int i;
     time_t now = time(NULL);
@@ -144,17 +130,16 @@ void set_timeLimit()
     FILE* fp = fopen(file_path, "r");
     char name[32];
     time_t usage_time;
-    time_t left_time; // 남은 시간
+    time_t left_time;  // 남은 시간
     struct tm* date;
 
     for (i = 7; i < LINES - 5; i++) {
         fscanf(fp, "%s %ld", name, &usage_time);
         date = localtime(&usage_time);
 
-        if(i-6 == no) // 이름 추출
+        if (i - 6 == no)  // 이름 추출
             break;
     }
-
 
     uid_t uid;
     DIR* dir_ptr;
@@ -176,7 +161,7 @@ void set_timeLimit()
                 // pid로 이름 받아오기
                 get_process_name_by_pid_string(pid_name, dirent_ptr->d_name);
 
-                if(strcmp(pid_name, name) == 0){ // 내가 찾는 놈이면 해당 pid 가져옴!
+                if (strcmp(pid_name, name) == 0) {  // 내가 찾는 놈이면 해당 pid 가져옴!
                     strcpy(pid, dirent_ptr->d_name);
                     break;
                 }
@@ -188,9 +173,8 @@ void set_timeLimit()
     /* 경로 읽어오기 */
     sprintf(file_path, "/proc/%s/exe", pid);
     char pid_path[200];
-    if(readlink(file_path, pid_path, 200) == -1)
+    if (readlink(file_path, pid_path, 200) == -1)
         sprintf(pid_path, "There is no absolute path..");
-
 
     // 남는 시간 계산
     left_time = limit - usage_time;
@@ -198,22 +182,20 @@ void set_timeLimit()
     /* 결과창 */
     clear();
     refresh();
-    move(LINES/2-1, COLS/3);
+    move(LINES / 2 - 1, COLS / 3);
     standout();
     addnstr("Time Limit is successfully saved!", COLS);
-    move(LINES/2, COLS/3);
+    move(LINES / 2, COLS / 3);
     sprintf(str, "Name : %s, Timelimit : %ld(sec), PID : %s, LeftTime: %ld(sec), path: %s\n", name, limit, pid, left_time, pid_path);
     addnstr(str, COLS);
     standend();
-    refresh(); // time limit 설정
-
+    refresh();  // time limit 설정
 
     /* 파일 쓰기 */
     sprintf(file_path, "left_time.log");
-    FILE *fp2 = fopen(file_path, "a");
+    FILE* fp2 = fopen(file_path, "a");
     sprintf(str, "\n%s;%s;%ld;%s", name, pid, left_time, pid_path);
     fputs(str, fp2);
-
 
     sleep(3);
 
