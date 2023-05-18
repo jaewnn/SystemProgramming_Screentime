@@ -87,7 +87,7 @@ void time_limit(){
 	int lineCount = 0;	
 	while(fgets(line,sizeof(line),LT)){
 		lineCount++;
-		if(lineCount<=2) continue; // two of initial line is skipped
+		if(lineCount<=1) continue; // two of initial line is skipped
 
 		char temp[MAX_LINE_LENGTH];
 		strcpy(temp,line);
