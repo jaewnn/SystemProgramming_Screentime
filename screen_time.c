@@ -172,25 +172,24 @@ void select_process_by_number() {
 }
 
 void set_timeLimit() {
-    clear();
-    refresh();
-    echo();
 
-    move(LINES / 2, COLS / 2);
+    echo();
+    nocrmode();
+
+    move(LINES-1, 0);
     standout();
-    addnstr("Please Enter the NO of the process.", COLS);
+    addnstr("Please Enter the NO of the process : ", COLS);
     standend();
     refresh();
 
     int no;
     scanf("%d", &no);  // 제한시간을 걸 번호를 선택
 
-    clear();
-    refresh();
-
-    move(LINES / 2, COLS / 2);
+    move(LINES-1, 0);
     standout();
-    addnstr("Please set the time limits (sec)", COLS);
+    addnstr("                                      ", COLS);
+    move(LINES-1, 0);
+    addnstr("Please set the time limits (sec) : ", COLS);
     standend();
     refresh();  // time limit 설정
 
@@ -257,12 +256,13 @@ void set_timeLimit() {
     left_time = limit - usage_time;
 
     /* 결과창 */
-    clear();
-    refresh();
-    move(LINES / 2 - 1, COLS / 3);
+    move(LINES - 2, 0);
     standout();
     addnstr("Time Limit is successfully saved!", COLS);
-    move(LINES / 2, COLS / 3);
+    standend();
+
+    move(LINES-1, 0);
+    standout();
     sprintf(str, "Name : %s, Timelimit : %ld(sec), PID : %s, LeftTime: %ld(sec), path: %s\n", name, limit, pid, left_time, pid_path);
     addnstr(str, COLS);
     standend();
@@ -274,24 +274,10 @@ void set_timeLimit() {
     sprintf(str, "\n%s;%s;%ld;%s", name, pid, left_time, pid_path);
     fputs(str, fp2);
 
-    sleep(3);
+    // sleep(5)
 
     fclose(fp);
     fclose(fp2);
     noecho();
-}
-
-void exclude_from_list() {
-    select_process_by_number();
-
-    struct hashmap* exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
-    read_map_from_file(exclude, "exclude_process.log");
-
-    name_time exclude_buf;
-    memset(&exclude_buf, 0, sizeof(name_time));
-    strcpy(exclude_buf.name, name_buf);
-    hashmap_set(exclude, &exclude_buf);
-    write_map_to_file(exclude, "exclude_process.log");
-
-    hashmap_free(exclude);
+    crmode();
 }
