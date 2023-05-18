@@ -32,7 +32,6 @@ void execute_remove(char* program_path){
         	perror("chmod");
 		return;
     	}
-	printf("permission is removed : %s\n",program_path);
 
 	// 실행 권한 제거한 프로세스의 path -> 파일에 기록
 	fprintf(fp,"%s\n",program_path); 
@@ -51,7 +50,10 @@ void execute_recover(){ // 실행 권한 복구
 			current_permissions |= S_IXUSR | S_IXGRP | S_IXOTH; 
 
 			chmod(line, current_permissions); // 실행권한 복구
-			printf("permission is recovered : %s\n",line);
+			time_t timer = time(NULL);
+			struct tm* t = localtime(&timer);
+			printf("%d/%d/%d %d:%d:%d\tpermission is recovered : %s\n"
+					t->tm_hour+1900,t->tm_mon+1,t->tm_mday,t->tm_hour,t->tm->min,t->tm_sec,line);
 		}
 		else{
 			perror("stat");
@@ -99,7 +101,11 @@ void time_limit(){
 			}
 			else{
 				execute_remove(tokens[3]);
-				printf("kill %s\n",tokens[0]);
+				time_t timer = time(NULL);
+			        struct tm* t = localtime(&timer);
+        			printf("%d/%d/%d %d:%d:%d\tkill and can't be executed : %s\n",
+                        		t->tm_year+1900,t->tm_mon+1,t->tm_mday,t->tm_hour,t->tm_min,t->tm_sec,tokens[0]);
+
 			}
 		}
 		else{
