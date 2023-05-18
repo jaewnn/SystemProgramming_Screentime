@@ -22,10 +22,10 @@
 #define EXCLUDE_FROM_LIST '2'
 #define EXIT '3'
 
+void read_usage_time();
 void print_legend();
 void print_data();
 void print_menu();
-void read_usage_time();
 
 void select_process_by_number();
 void set_timeLimit();
@@ -172,11 +172,10 @@ void select_process_by_number() {
 }
 
 void set_timeLimit() {
-
     echo();
     nocrmode();
 
-    move(LINES-1, 0);
+    move(LINES - 1, 0);
     standout();
     addnstr("Please Enter the NO of the process : ", COLS);
     standend();
@@ -185,10 +184,10 @@ void set_timeLimit() {
     int no;
     scanf("%d", &no);  // 제한시간을 걸 번호를 선택
 
-    move(LINES-1, 0);
+    move(LINES - 1, 0);
     standout();
     addnstr("                                      ", COLS);
-    move(LINES-1, 0);
+    move(LINES - 1, 0);
     addnstr("Please set the time limits (sec) : ", COLS);
     standend();
     refresh();  // time limit 설정
@@ -261,7 +260,7 @@ void set_timeLimit() {
     addnstr("Time Limit is successfully saved!", COLS);
     standend();
 
-    move(LINES-1, 0);
+    move(LINES - 1, 0);
     standout();
     sprintf(str, "Name : %s, Timelimit : %ld(sec), PID : %s, LeftTime: %ld(sec), path: %s\n", name, limit, pid, left_time, pid_path);
     addnstr(str, COLS);
@@ -280,4 +279,19 @@ void set_timeLimit() {
     fclose(fp2);
     noecho();
     crmode();
+}
+
+void exclude_from_list() {
+    select_process_by_number();
+
+    struct hashmap* exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    read_map_from_file(exclude, "exclude_process.log");
+
+    name_time exclude_buf;
+    memset(&exclude_buf, 0, sizeof(name_time));
+    strcpy(exclude_buf.name, name_buf);
+    hashmap_set(exclude, &exclude_buf);
+    write_map_to_file(exclude, "exclude_process.log");
+
+    hashmap_free(exclude);
 }
