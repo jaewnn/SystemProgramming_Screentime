@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <time.h>
 
 #define MAX_TOKENS 4
 #define MAX_TOKEN_LENGTH 100
