@@ -52,8 +52,8 @@ void execute_recover(){ // 실행 권한 복구
 			chmod(line, current_permissions); // 실행권한 복구
 			time_t timer = time(NULL);
 			struct tm* t = localtime(&timer);
-			printf("%d/%d/%d %d:%d:%d\tpermission is recovered : %s\n"
-					t->tm_hour+1900,t->tm_mon+1,t->tm_mday,t->tm_hour,t->tm->min,t->tm_sec,line);
+			printf("%d/%d/%d %d:%d:%d\tpermission is recovered : %s\n",
+					t->tm_hour+1900,t->tm_mon+1,t->tm_mday,t->tm_hour,t->tm_min,t->tm_sec,line);
 		}
 		else{
 			perror("stat");
