@@ -1,39 +1,43 @@
 #include <curses.h>
 #include <dirent.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
-
-#include "CODE/usage_time.h"
+#include <time.h>
 
 void print_legend();
 void print_data();
 void print_menu();
-void set_timeLimit();
 
 char str[1024];
 char blank[1024];
 
 int main(int argc, char* argv[]) {
-    // curses
     initscr();
+    crmode();
+    noecho();
+    nodelay(stdscr, true);
+    print_legend();
+    print_data();
+    print_menu();
+    refresh();
 
     int key;
     while (1) {
-        sleep(1);
-
-        // curses
-        print_legend();
-        print_data();
-        print_menu();
-        refresh();
-
-        // sleep(3);
-        // set_timeLimit();
+        key = getch();
+        if (key == '1') {
+            set_timeLimit();
+        } else if (key == '2') {
+            break;
+        } else {
+            print_legend();
+            print_data();
+            print_menu();
+            sleep(1);
+        }
     }
 
-    // curses
     endwin();
     return 0;
 }
@@ -86,7 +90,7 @@ void print_data() {
 }
 
 void print_menu() {
-    sprintf(str, "0) timeset\t1) search\t2) exit");
+    sprintf(str, "1) timeset\t2) exit");
     strncpy(blank, str, strlen(str));
     move(LINES - 1, 0);
     standout();
@@ -98,6 +102,7 @@ void print_menu() {
 void set_timeLimit() {
     clear();
     refresh();
+    echo();
 
     move(LINES / 2, COLS / 2);
     standout();
@@ -201,4 +206,5 @@ void set_timeLimit() {
 
     fclose(fp);
     fclose(fp2);
+    noecho();
 }

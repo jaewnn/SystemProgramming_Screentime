@@ -4,14 +4,14 @@ all:
 	make screen_time
 	make screen_time_daemon
 
-screen_time: demo_usage_time_addlimit.o usage_time.o hashmap.o
-	gcc -o screen_time demo_usage_time_addlimit.o usage_time.o hashmap.o -lcurses
+screen_time: screen_time.o usage_time.o hashmap.o
+	gcc -o screen_time screen_time.o usage_time.o hashmap.o -lcurses
 
 screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o
 	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o
 
-demo_usage_time_addlimit.o: demo_usage_time_addlimit.c CODE/usage_time.h
-	gcc -Wall -g -c demo_usage_time_addlimit.c
+screen_time.o: screen_time.c CODE/usage_time.h
+	gcc -Wall -g -c screen_time.c
 
 screen_time_daemon.o: screen_time_daemon.c CODE/usage_time.h
 	gcc -Wall -g -c screen_time_daemon.c
