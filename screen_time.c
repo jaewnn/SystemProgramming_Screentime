@@ -71,7 +71,7 @@ void print_legend() {
     memset(blank, ' ', COLS);
     sprintf(str, "%-5s %-32s %-16s %-16s ", "NO", "APP", "USAGE TIME", "TIME LEFTED");
     strncpy(blank, str, strlen(str));
-    move(6, 0);
+    move(LEGEND_LINE_FROM_TOP, 0);
     standout();
     addnstr(blank, COLS);
     standend();
@@ -159,7 +159,7 @@ void select_process_by_number() {
     if (result == -1 ||
         number_of_process - 1 < 0 ||
         number_of_process - 1 >= usage_time_count ||
-        number_of_process >= DATA_LINE_FROM_BOTTOM) {
+        number_of_process >= LINES - DATA_LINE_FROM_TOP - DATA_LINE_FROM_BOTTOM + 1) {
         move(LINES - INPUT_LINE_FROM_BOTTOM + 1, 0);
         addnstr("Enter valid number. Press any key to continue...", COLS);
         getch();
