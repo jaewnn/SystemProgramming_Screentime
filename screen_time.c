@@ -79,24 +79,58 @@ void print_legend() {
 }
 
 void print_data() {
+
+    char file_limit_path[32];
+    sprintf(file_limit_path, "left_time.log");
+    FILE* fp_limit = fopen(file_limit_path, "r"); // check time_limit
+
+    char line[256];
+    char* token;
+
     for (int i = DATA_LINE_FROM_TOP; i < LINES - DATA_LINE_FROM_BOTTOM; i++) {
         memset(blank, ' ', COLS);
         int data_index = i - DATA_LINE_FROM_TOP;
 
         if (data_index < usage_time_count) {
+
+	    // show time limit time
+	    int limit = 0;
+	    while(fgets(line, sizeof(line), fp_limit) != NULL)
+	    { // find the limit
+		token = strtok(line, ";");
+		if(strlen(token) != 1 && token != NULL && (strcmp(token, usage_time_arr[data_index].name) == 0))
+		{
+			token = strtok(NULL, ";");
+			token = strtok(NULL, ";");
+			limit = atoi(token);
+			break;
+		}
+	    }
+
+	    fseek(fp_limit, 0, SEEK_SET);
+
+	    int hours = limit / 3600;
+	    int minutes = (limit % 3600) / 60;
+	    int seconds = limit % 60;
+
             struct tm* tm_ptr = localtime(&usage_time_arr[data_index].time);
-            sprintf(str, "%-5d %-32s %02d:%02d:%02d ",
+            sprintf(str, "%-5d %-32s %02d:%02d:%02d         %02d:%02d:%02d",
                     data_index + 1,
                     usage_time_arr[data_index].name,
                     (tm_ptr->tm_mday - 1) * 24 + tm_ptr->tm_hour - 9,
                     tm_ptr->tm_min,
-                    tm_ptr->tm_sec);
+                    tm_ptr->tm_sec,
+		    hours,
+		    minutes,
+		    seconds);
             strncpy(blank, str, strlen(str));
         }
 
         move(i, 0);
         addnstr(blank, COLS);
     }
+    
+    fclose(fp_limit);
 
     memset(blank, '-', COLS);
     move(LINES - DATA_LINE_FROM_BOTTOM, 0);
@@ -177,7 +211,7 @@ void set_timeLimit() {
 
     move(LINES - 1, 0);
     standout();
-    addnstr("Please Enter the NO of the process : ", COLS);
+    addnstr("Please Enter the NO of the process :                   ", COLS);
     standend();
     refresh();
 
@@ -188,7 +222,7 @@ void set_timeLimit() {
     standout();
     addnstr("                                      ", COLS);
     move(LINES - 1, 0);
-    addnstr("Please set the time limits (sec) : ", COLS);
+    addnstr("Please set the time limits (sec) :                     ", COLS);
     standend();
     refresh();  // time limit 설정
 
