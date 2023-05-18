@@ -1,69 +1,45 @@
 #include <curses.h>
 #include <dirent.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#include <unistd.h>
-
-#include "CODE/usage_time.h"
-
-#define MAX_DATA_LINES 64
-#define LEGEND_LINE_FROM_TOP 6
-#define DATA_LINE_FROM_TOP 7
-#define DATA_LINE_FROM_BOTTOM 7
-#define INPUT_LINE_FROM_BOTTOM 6
-
-#define NAME_BUF_SIZE 32
-
-#define SET_TIME_LIMIT '1'
-#define EXCLUDE_FROM_LIST '2'
-#define EXIT '3'
 
 void print_legend();
 void print_data();
 void print_menu();
-void read_usage_time();
-
-void select_process_by_number();
-void set_timeLimit();
-void exclude_from_list();
 
 char str[1024];
 char blank[1024];
 
-name_time usage_time_arr[MAX_DATA_LINES];
-int usage_time_count;
-
-char name_buf[NAME_BUF_SIZE];
-
 int main(int argc, char* argv[]) {
     initscr();
-    cbreak();
+    crmode();
     noecho();
-    timeout(0);
-    curs_set(0);  // diable cursor
+    nodelay(stdscr, true);
+    print_legend();
+    print_data();
+    print_menu();
+    refresh();
 
+    int key;
     while (1) {
-        int key = getch();
-
-        if (key == SET_TIME_LIMIT) {
+        key = getch();
+        if (key == '1') {
             set_timeLimit();
-        } else if (key == EXCLUDE_FROM_LIST) {
-            exclude_from_list();
-        } else if (key == EXIT) {
+        } else if (key == '2') {
             break;
         } else {
-            read_usage_time();
             print_legend();
             print_data();
             print_menu();
+            sleep(1);
         }
     }
-    endwin();
 
+    endwin();
     return 0;
 }
 
@@ -79,39 +55,71 @@ void print_legend() {
 }
 
 void print_data() {
-    for (int i = DATA_LINE_FROM_TOP; i < LINES - DATA_LINE_FROM_BOTTOM; i++) {
+    int i;
+    time_t now = time(NULL);
+    struct tm* week = localtime(&now);
+
+    char file_path[32];
+    char file_limit_path[32];
+    sprintf(file_path, "usage_time_%d.log", week->tm_wday);
+    sprintf(file_limit_path, "left_time.log");
+
+    FILE* fp = fopen(file_path, "r");
+    FILE* fp_limit = fopen(file_limit_path, "r"); // check time_limit
+
+    char name[32];
+    time_t usage_time;
+    struct tm* date;
+    
+    char line[256];
+    char* token;
+
+    for (i = 7; i < LINES - 5; i++) {
+        fscanf(fp, "%s %ld", name, &usage_time);
+        date = localtime(&usage_time);
+
+	long long int limit = 0;
+	while(fgets(line, sizeof(line), fp_limit) != NULL)
+	{ // find the limit
+		token = strtok(line, ";");
+		if(strlen(token) != 1 && token != NULL && (strcmp(token, name) == 0))
+		{
+			token = strtok(NULL, ";");
+			token = strtok(NULL, ";");
+			limit = atoll(token);
+			break;
+		}
+	}
+
+	fseek(fp_limit, 0, SEEK_SET);
+
+	long long int hours = limit / 3600;
+	long long int minutes = (limit % 3600) / 60;
+	long long int seconds = limit % 60;
+
+        sprintf(str, "%-5d %-32s %02d:%02d:%02d         %02lld:%02lld:%02lld", i - 6, name, (date->tm_mday - 1) * 24 + date->tm_hour - 9, date->tm_min, date->tm_sec, hours, minutes, seconds);
         memset(blank, ' ', COLS);
-        int data_index = i - DATA_LINE_FROM_TOP;
-
-        if (data_index < usage_time_count) {
-            struct tm* tm_ptr = localtime(&usage_time_arr[data_index].time);
-            sprintf(str, "%-5d %-32s %02d:%02d:%02d ",
-                    data_index + 1,
-                    usage_time_arr[data_index].name,
-                    (tm_ptr->tm_mday - 1) * 24 + tm_ptr->tm_hour - 9,
-                    tm_ptr->tm_min,
-                    tm_ptr->tm_sec);
-            strncpy(blank, str, strlen(str));
-        }
-
+        strncpy(blank, str, strlen(str));
         move(i, 0);
         addnstr(blank, COLS);
     }
 
+    fclose(fp);
+    fclose(fp_limit);
+
     memset(blank, '-', COLS);
-    move(LINES - DATA_LINE_FROM_BOTTOM, 0);
+    move(LINES - 5, 0);
     addnstr(blank, COLS);
+    memset(blank, ' ', COLS);
+    for (i = LINES - 4; i < LINES - 1; i++) {
+        move(i, 0);
+        addnstr(blank, COLS);
+    }
     refresh();
 }
 
 void print_menu() {
-    memset(blank, ' ', COLS);
-    for (int i = LINES - INPUT_LINE_FROM_BOTTOM; i < LINES - 1; i++) {
-        move(i, 0);
-        addnstr(blank, COLS);
-    }
-
-    sprintf(str, "1) Set time limit    2) Exclude from list    3) Exit");
+    sprintf(str, "1) timeset\t2) exit");
     strncpy(blank, str, strlen(str));
     move(LINES - 1, 0);
     standout();
@@ -120,77 +128,25 @@ void print_menu() {
     refresh();
 }
 
-void read_usage_time() {
-    memset(usage_time_arr, 0, sizeof(name_time) * MAX_DATA_LINES);
-    usage_time_count = 0;
-
-    time_t now = time(NULL);
-    struct tm* now_tm_ptr = localtime(&now);
-
-    char filename[32];
-    sprintf(filename, "usage_time_%d.log", now_tm_ptr->tm_wday);
-
-    FILE* fp = fopen(filename, "r");
-    if (fp == NULL) return;
-
-    while (!feof(fp)) {
-        fscanf(fp, "%s %ld\n", usage_time_arr[usage_time_count].name, &usage_time_arr[usage_time_count].time);
-        usage_time_count++;
-    }
-
-    fclose(fp);
-}
-
-void select_process_by_number() {
-    nocbreak();   // enable canonical input mode
-    echo();       // enable echo
-    timeout(-1);  // blocking
-
-    move(LINES - INPUT_LINE_FROM_BOTTOM, 0);
-    addnstr("# of process: ", COLS);
-    refresh();
-
-    int number_of_process;
-    int result = scanw("%d", &number_of_process);
-
-    noecho();  // disable echo
-    cbreak();  // disable canonical input mode
-
-    if (result == -1 ||
-        number_of_process - 1 < 0 ||
-        number_of_process - 1 >= usage_time_count ||
-        number_of_process >= DATA_LINE_FROM_BOTTOM) {
-        move(LINES - INPUT_LINE_FROM_BOTTOM + 1, 0);
-        addnstr("Enter valid number. Press any key to continue...", COLS);
-        getch();
-    } else {
-        memset(name_buf, 0, NAME_BUF_SIZE);
-        strcpy(name_buf, usage_time_arr[number_of_process - 1].name);
-    }
-
-    timeout(0);  // non-blocking
-}
-
 void set_timeLimit() {
-    clear();
-    refresh();
-    echo();
 
-    move(LINES / 2, COLS / 2);
+    echo();
+    nocrmode();
+
+    move(LINES-1, 0);
     standout();
-    addnstr("Please Enter the NO of the process.", COLS);
+    addnstr("Please Enter the NO of the process : ", COLS);
     standend();
     refresh();
 
     int no;
     scanf("%d", &no);  // 제한시간을 걸 번호를 선택
 
-    clear();
-    refresh();
-
-    move(LINES / 2, COLS / 2);
+    move(LINES-1, 0);
     standout();
-    addnstr("Please set the time limits (sec)", COLS);
+    addnstr("                                      ", COLS);
+    move(LINES-1, 0);
+    addnstr("Please set the time limits (sec) : ", COLS);
     standend();
     refresh();  // time limit 설정
 
@@ -257,12 +213,13 @@ void set_timeLimit() {
     left_time = limit - usage_time;
 
     /* 결과창 */
-    clear();
-    refresh();
-    move(LINES / 2 - 1, COLS / 3);
+    move(LINES - 2, 0);
     standout();
     addnstr("Time Limit is successfully saved!", COLS);
-    move(LINES / 2, COLS / 3);
+    standend();
+
+    move(LINES-1, 0);
+    standout();
     sprintf(str, "Name : %s, Timelimit : %ld(sec), PID : %s, LeftTime: %ld(sec), path: %s\n", name, limit, pid, left_time, pid_path);
     addnstr(str, COLS);
     standend();
@@ -274,24 +231,10 @@ void set_timeLimit() {
     sprintf(str, "\n%s;%s;%ld;%s", name, pid, left_time, pid_path);
     fputs(str, fp2);
 
-    sleep(3);
+    // sleep(5)
 
     fclose(fp);
     fclose(fp2);
     noecho();
-}
-
-void exclude_from_list() {
-    select_process_by_number();
-
-    struct hashmap* exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
-    read_map_from_file(exclude, "exclude_process.log");
-
-    name_time exclude_buf;
-    memset(&exclude_buf, 0, sizeof(name_time));
-    strcpy(exclude_buf.name, name_buf);
-    hashmap_set(exclude, &exclude_buf);
-    write_map_to_file(exclude, "exclude_process.log");
-
-    hashmap_free(exclude);
+    crmode();
 }

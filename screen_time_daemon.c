@@ -9,6 +9,8 @@
 
 #include "CODE/usage_time.h"
 
+void upDateLimit(int);
+
 int main(int argc, char* argv[]) {
     puts("*** this program should be run in background ***");
 
@@ -41,8 +43,56 @@ int main(int argc, char* argv[]) {
         sleep(interval);
         write_usage_time_to_file();
         if (verbose) puts("usage time recorded...");
+	upDateLimit(interval);
     }
 
     cleanup_map();
     return 0;
+}
+
+// update limit..
+void upDateLimit(int interval)
+{
+	FILE* file = fopen("left_time.log", "r"); // check time_limit
+	FILE* temp_file = fopen("temp.log", "w");
+	char line[256];
+	char new_line[256];
+	char buf[15];
+	char* token;
+	long long int limit = 0;
+
+
+	while(fgets(line, sizeof(line), file) != NULL)
+	{ // find the time
+
+		token = strtok(line, ";");
+		if(strlen(token) != 1 && token != NULL)
+		{
+			strcpy(new_line, token);
+			token = strtok(NULL, ";");
+			strcat(new_line, ";");
+			strcat(new_line, token);
+
+			token = strtok(NULL, ";");
+			strcat(new_line, ";");
+
+			limit = atoll(token);
+			sprintf(buf, "%lld", limit-interval);
+			strcat(new_line, buf);
+		
+			strcat(new_line, ";");
+			token = strtok(NULL, ";");
+			strcat(new_line, token);
+
+			fputs(new_line, temp_file);
+		}
+	}
+
+	rename("./temp.log", "./left_time.log"); // make new file
+
+	fclose(file);
+	fclose(temp_file);
+
+
+	return;
 }
