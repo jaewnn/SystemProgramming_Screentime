@@ -55,12 +55,14 @@ void setup_map() {
     usage_time = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     curr = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     prev = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 }
 
 void cleanup_map() {
     hashmap_free(usage_time);
     hashmap_free(curr);
     hashmap_free(prev);
+    hashmap_free(exclude);
     puts("\ngoodbye...");
     exit(EXIT_SUCCESS);
 }
@@ -281,6 +283,14 @@ void write_usage_time_to_file() {
             usage_time_buf.time += now - get_start_time_today(start_time_ptr->time, now);
 
         hashmap_set(usage_time, &usage_time_buf);
+    }
+
+    iter = 0;
+    read_map_from_file(exclude, "exclude_process.log");
+    while (hashmap_iter(exclude, &iter, &item)) {
+        const name_time* exclude_ptr = item;
+        if (hashmap_get(usage_time, exclude_ptr))
+            hashmap_delete(usage_time, (void*)exclude_ptr);
     }
 
     write_map_to_file(usage_time, filename);

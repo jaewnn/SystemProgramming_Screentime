@@ -37,3 +37,4 @@ int mday;
 struct hashmap* usage_time;
 struct hashmap* curr;
 struct hashmap* prev;
+struct hashmap* exclude;
