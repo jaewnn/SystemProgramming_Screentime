@@ -15,6 +15,12 @@
 
 #include "../hashmap.c/hashmap.h"
 
+int mday;
+struct hashmap* usage_time;
+struct hashmap* curr;
+struct hashmap* prev;
+struct hashmap* exclude;
+
 int record_compare(const void* a, const void* b, void* rdata) {
     const name_time* ra = a;
     const name_time* rb = b;

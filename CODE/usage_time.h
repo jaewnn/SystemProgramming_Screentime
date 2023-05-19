@@ -1,3 +1,6 @@
+#ifndef __USAGE_TIME_H__
+#define __USAGE_TIME_H__
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/stat.h>
@@ -33,8 +36,4 @@ void swap_curr_prev();
 void read_usage_time_from_file();
 void write_usage_time_to_file();
 
-int mday;
-struct hashmap* usage_time;
-struct hashmap* curr;
-struct hashmap* prev;
-struct hashmap* exclude;
+#endif
