@@ -1,7 +1,7 @@
 #include "timelimit.h"
 
 // you should sudo instruction to use this functions!
-
+ 
 // split 함수
 void splitString(char* str,char tokens[MAX_TOKENS][MAX_TOKEN_LENGTH],int* numTokens){
 	char* token = strtok(str,";\n");
@@ -40,10 +40,27 @@ void execute_remove(char* program_path){
 
 void execute_recover(){ // 실행 권한 복구
 	FILE* fp = fopen("execute_remove.txt","r");
+	if(fp == NULL){
+		perror("Error opening file");
+		return;
+	}
+
+	fseek(fp,0,SEEK_END);
+	long file_size = ftell(fp);
+	if(file_size == 0){ // case that file information is zero
+		printf("NO executable file to recover\n");
+		fclose(fp);
+		return;
+	}
+	
+	rewind(fp); // file pointer go to first
+
 	char line[MAX_LINE_LENGTH];
 	struct stat file_stat;
 
 	while(fgets(line,sizeof(line),fp)){
+		line[strcspn(line,"\n")] = '\0'; // remove the newline character
+
 		if(stat(line,&file_stat)==0){
 			mode_t current_permissions =file_stat.st_mode;
 
@@ -67,11 +84,14 @@ void execute_recover(){ // 실행 권한 복구
     	if (file != NULL) {
         	fclose(file); // 파일 닫기
     	}
+	else{
+		perror("Error opening file");
+	}
 }
 
 void time_limit(){
-	FILE* LT = fopen("left_time.log","r"); // 시간제한 파일을 읽어옴
-	FILE* tf = fopen("temp.log","w");
+	FILE* LT = fopen("../left_time.log","r"); // 시간제한 파일을 읽어옴
+	FILE* tf = fopen("../temp.log","w");
 	char line[MAX_LINE_LENGTH];
 	char tokens[MAX_TOKENS][MAX_TOKEN_LENGTH];
 	int numTokens = 0;
@@ -117,10 +137,10 @@ void time_limit(){
 	fclose(LT);
 
 	// original file remove
-	remove("timelimit.log");
+	remove("../timelimit.log");
 	
 	// change temp file to original file
-	rename("temp.log","timelimit.log");
+	rename("../temp.log","../timelimit.log");
 
 	return;
 }
