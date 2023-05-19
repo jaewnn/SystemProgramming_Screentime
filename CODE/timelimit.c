@@ -137,10 +137,10 @@ void time_limit(){
 	fclose(LT);
 
 	// original file remove
-	remove("../timelimit.log");
+	remove("../left_time.log");
 	
 	// change temp file to original file
-	rename("../temp.log","../timelimit.log");
+	rename("../temp.log","../left_time.log");
 
 	return;
 }
