@@ -3,6 +3,7 @@
 all:
 	make screen_time
 	make screen_time_daemon
+	make left_time.log
 
 screen_time: screen_time.o usage_time.o hashmap.o timelimit.o
 	sudo gcc -o screen_time screen_time.o usage_time.o hashmap.o timelimit.o -lcurses
@@ -24,6 +25,9 @@ usage_time.o: CODE/usage_time.c CODE/usage_time.h hashmap.c/hashmap.h
 
 hashmap.o: hashmap.c/hashmap.c hashmap.c/hashmap.h
 	gcc -Wall -g -c hashmap.c/hashmap.c
+
+left_time.log:
+	echo "" > left_time.log
 
 clean:
 	$(RM) *.o *.log screen_time screen_time_daemon
