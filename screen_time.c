@@ -79,6 +79,13 @@ int usage_time_count;
 char name_buf[NAME_BUF_SIZE];
 
 int main(int argc, char* argv[]) {
+    // 실행권한 복구 하는 옵션
+    if((argc == 2)&&(strcmp(argv[1], "-r") == 0)){
+        printf("Recover execute permision...\n");
+        execute_recover();
+        return 0;
+    }
+
     initscr();
     cbreak();
     noecho();

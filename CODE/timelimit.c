@@ -87,6 +87,8 @@ void execute_recover(){ // 실행 권한 복구
 	else{
 		perror("Error opening file");
 	}
+
+	refresh();
 }
 
 void time_limit(){
@@ -104,6 +106,16 @@ void time_limit(){
 		printf("cannot open temp file\n");
 		return;
 	}
+
+	fseek(LT,0,SEEK_END);
+	long file_size = ftell(LT);
+	if(file_size == 0){ // case that file information is zero
+		fclose(LT);
+		return;
+	}
+	
+	rewind(LT); // file pointer go to first
+
 	int lineCount = 0;	
 	while(fgets(line,sizeof(line),LT)){
 		lineCount++;
@@ -142,5 +154,6 @@ void time_limit(){
 	// change temp file to original file
 	rename("../temp.log","../left_time.log");
 
+	refresh();
 	return;
 }
