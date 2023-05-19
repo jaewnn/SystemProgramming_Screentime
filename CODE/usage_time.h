@@ -36,4 +36,7 @@ void swap_curr_prev();
 void read_usage_time_from_file();
 void write_usage_time_to_file();
 
+void add_exclude_process_by_name(char* procname);
+void exclude_process();
+
 #endif

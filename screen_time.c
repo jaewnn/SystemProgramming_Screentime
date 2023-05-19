@@ -1,14 +1,16 @@
 #include <curses.h>
 #include <dirent.h>
+#include <fcntl.h>
+#include <mqueue.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#include <utime.h>
-#include <pwd.h>
 #include <unistd.h>
+#include <utime.h>
 
 #include "CODE/usage_time.h"
 
@@ -24,33 +26,29 @@
 #define EXCLUDE_FROM_LIST '2'
 #define EXIT '3'
 
-
 typedef unsigned long long int LLI;
 typedef struct proc* procPointer;
 typedef struct proc {
-
-    unsigned long pid;      // 현재 실행중인 process id
-    unsigned long uid;      // 유저 id
-    char user_name[30];    // 유저 이름
-    LLI priority;           // PI (우선순위)
-    LLI nice;               // NI (NICE 값)
-    LLI virt;               // VIRT (KB기준)
-    LLI res;                // RES
-    LLI shr;                // SHR
-    char state;             // 프로세스 상태
+    unsigned long pid;   // 현재 실행중인 process id
+    unsigned long uid;   // 유저 id
+    char user_name[30];  // 유저 이름
+    LLI priority;        // PI (우선순위)
+    LLI nice;            // NI (NICE 값)
+    LLI virt;            // VIRT (KB기준)
+    LLI res;             // RES
+    LLI shr;             // SHR
+    char state;          // 프로세스 상태
     LLI utime;
     LLI stime;
-    LLI start_time;         // cpu사용률 계산용
-    float cpu;              // cpu 사용률
-    float mem;              // 메모리 사용률
-    float time;             // CPU 사용시간 (0.01초 단위)
+    LLI start_time;  // cpu사용률 계산용
+    float cpu;       // cpu 사용률
+    float mem;       // 메모리 사용률
+    float time;      // CPU 사용시간 (0.01초 단위)
     LLI convert_time;
-    char command[30];           // 프로세스 사용시 명령어
+    char command[30];  // 프로세스 사용시 명령어
 
-
-    procPointer next;       // 연결 포인터
+    procPointer next;  // 연결 포인터
 } proc;
-
 
 void get_info_from_name(procPointer*, char*);
 procPointer make_proc();
@@ -80,7 +78,7 @@ char name_buf[NAME_BUF_SIZE];
 
 int main(int argc, char* argv[]) {
     // 실행권한 복구 하는 옵션
-    if((argc == 2)&&(strcmp(argv[1], "-r") == 0)){
+    if ((argc == 2) && (strcmp(argv[1], "-r") == 0)) {
         printf("Recover execute permision...\n");
         execute_recover();
         return 0;
@@ -113,22 +111,20 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-procPointer make_proc()
-{
+procPointer make_proc() {
     procPointer proc_node;
-    proc_node =  (procPointer)malloc(sizeof(proc));
-    proc_node->pid = 0;      // 현재 실행중인 process id
-    proc_node->uid;      
-    proc_node->priority = 0;           // PI (우선순위)
-    proc_node->nice = 0;               // NI (NICE 값)
-    proc_node->virt = 0;               // VIRT (KB기준)
-    proc_node->res = 0;                // RES
-    proc_node->shr = 0;                // SHR
-    proc_node->state = 'F';             // 프로세스 상태
-    
-    proc_node->cpu = 0;              // cpu 사용률
-    proc_node->mem = 0;              // 메모리 사용률
+    proc_node = (procPointer)malloc(sizeof(proc));
+    proc_node->pid = 0;  // 현재 실행중인 process id
+    proc_node->uid;
+    proc_node->priority = 0;  // PI (우선순위)
+    proc_node->nice = 0;      // NI (NICE 값)
+    proc_node->virt = 0;      // VIRT (KB기준)
+    proc_node->res = 0;       // RES
+    proc_node->shr = 0;       // SHR
+    proc_node->state = 'F';   // 프로세스 상태
 
+    proc_node->cpu = 0;  // cpu 사용률
+    proc_node->mem = 0;  // 메모리 사용률
 
     proc_node->next = NULL;
 
@@ -138,7 +134,7 @@ procPointer make_proc()
 void print_legend() {
     memset(blank, ' ', COLS);
     sprintf(str, "%-5s %6s %-32s %3s %3s %7s %6s %6s %3s %4s %4s    %10s  %10s ",
-		    "NO", "PID", "APP", "PR", "NI", "VIRT", "RES", "SHR", "S", "\%CPU", "\%MEM", "USAGE TIME", "TIME LEFTED");
+            "NO", "PID", "APP", "PR", "NI", "VIRT", "RES", "SHR", "S", "\%CPU", "\%MEM", "USAGE TIME", "TIME LEFTED");
     strncpy(blank, str, strlen(str));
     move(LEGEND_LINE_FROM_TOP, 0);
     standout();
@@ -148,10 +144,9 @@ void print_legend() {
 }
 
 void print_data() {
-
     char file_limit_path[32];
     sprintf(file_limit_path, "left_time.log");
-    FILE* fp_limit = fopen(file_limit_path, "r"); // check time_limit
+    FILE* fp_limit = fopen(file_limit_path, "r");  // check time_limit
 
     char line[256];
     char* token;
@@ -161,58 +156,54 @@ void print_data() {
         int data_index = i - DATA_LINE_FROM_TOP;
 
         if (data_index < usage_time_count) {
+            // show time limit time
+            int limit = 0;
+            while (fgets(line, sizeof(line), fp_limit) != NULL) {  // find the limit
+                token = strtok(line, ";");
+                if (strlen(token) != 1 && token != NULL && (strcmp(token, usage_time_arr[data_index].name) == 0)) {
+                    token = strtok(NULL, ";");
+                    token = strtok(NULL, ";");
+                    limit = atoi(token);
+                    break;
+                }
+            }
 
-	    // show time limit time
-	    int limit = 0;
-	    while(fgets(line, sizeof(line), fp_limit) != NULL)
-	    { // find the limit
-		token = strtok(line, ";");
-		if(strlen(token) != 1 && token != NULL && (strcmp(token, usage_time_arr[data_index].name) == 0))
-		{
-			token = strtok(NULL, ";");
-			token = strtok(NULL, ";");
-			limit = atoi(token);
-			break;
-		}
-	    }
+            fseek(fp_limit, 0, SEEK_SET);
 
-	    fseek(fp_limit, 0, SEEK_SET);
+            int hours = limit / 3600;
+            int minutes = (limit % 3600) / 60;
+            int seconds = limit % 60;
 
-	    int hours = limit / 3600;
-	    int minutes = (limit % 3600) / 60;
-	    int seconds = limit % 60;
-
-	    procPointer info = make_proc(); // bring information about program
-	    get_info_from_name(&info, usage_time_arr[data_index].name);
+            procPointer info = make_proc();  // bring information about program
+            get_info_from_name(&info, usage_time_arr[data_index].name);
 
             struct tm* tm_ptr = localtime(&usage_time_arr[data_index].time);
             sprintf(str, "%-5d %6ld %-32s %3lld %3lld %7lld %6lld %6lld %3c %4.1f %4.1f      %02d:%02d:%02d     %02d:%02d:%02d",
                     data_index + 1,
-		    info->pid,
+                    info->pid,
                     usage_time_arr[data_index].name,
-		    info->priority, 
-		    info->nice, 
-		    info->virt, 
-		    info->res,
-                    info->shr, 
-		    info->state, 
-		    info->cpu, 
-		    info->mem,
+                    info->priority,
+                    info->nice,
+                    info->virt,
+                    info->res,
+                    info->shr,
+                    info->state,
+                    info->cpu,
+                    info->mem,
                     (tm_ptr->tm_mday - 1) * 24 + tm_ptr->tm_hour - 9,
                     tm_ptr->tm_min,
                     tm_ptr->tm_sec,
-		    hours,
-		    minutes,
-		    seconds);
+                    hours,
+                    minutes,
+                    seconds);
             strncpy(blank, str, strlen(str));
-	    free(info);
+            free(info);
         }
 
-	
         move(i, 0);
         addnstr(blank, COLS);
     }
-    
+
     fclose(fp_limit);
 
     memset(blank, '-', COLS);
@@ -221,9 +212,7 @@ void print_data() {
     refresh();
 }
 
-void get_info_from_name(procPointer* info, char* name)
-{
-
+void get_info_from_name(procPointer* info, char* name) {
     uid_t uid;
     DIR* dir_ptr;
     struct dirent* dirent_ptr;
@@ -232,35 +221,30 @@ void get_info_from_name(procPointer* info, char* name)
     char pid[30];
 
     uid = geteuid();
-	
-	
+
     if ((dir_ptr = opendir("/proc")) == NULL) {
-       	perror("opendir");
-       	exit(1);
+        perror("opendir");
+        exit(1);
     }
 
+    while ((dirent_ptr = readdir(dir_ptr)) != NULL) {
+        if (is_number_string(dirent_ptr->d_name)) {
+            get_process_name_by_pid_string(pid_name, dirent_ptr->d_name);
 
-    while ((dirent_ptr = readdir(dir_ptr)) != NULL) 
-    {
-       if (is_number_string(dirent_ptr->d_name)) 
-       {
-              get_process_name_by_pid_string(pid_name, dirent_ptr->d_name);
-
-              if (strcmp(pid_name, name) == 0) {  // 내가 찾는 놈이면 해당 pid 가져옴!
-                  strcpy(pid, dirent_ptr->d_name);
-                  break;
-              }
-              memset(pid_name, 0, 30);
-       }
+            if (strcmp(pid_name, name) == 0) {  // 내가 찾는 놈이면 해당 pid 가져옴!
+                strcpy(pid, dirent_ptr->d_name);
+                break;
+            }
+            memset(pid_name, 0, 30);
+        }
     }
 
-    if(atoll(pid) != 0)
-    	(*info) = add_process(pid);
+    if (atoll(pid) != 0)
+        (*info) = add_process(pid);
 
     closedir(dir_ptr);
 
     // *info =  add_process(pid);
-
 }
 
 void print_menu() {
@@ -443,36 +427,40 @@ void set_timeLimit() {
 void exclude_from_list() {
     select_process_by_number();
 
-    struct hashmap* exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
-    read_map_from_file(exclude, "exclude_process.log");
+    struct mq_attr attr = {.mq_maxmsg = 4, .mq_msgsize = NAME_BUF_SIZE};
+    mqd_t mq = mq_open("/exclude_mq", O_WRONLY | O_CREAT, 0666, &attr);
 
-    name_time exclude_buf;
-    memset(&exclude_buf, 0, sizeof(name_time));
-    strcpy(exclude_buf.name, name_buf);
-    hashmap_set(exclude, &exclude_buf);
-    write_map_to_file(exclude, "exclude_process.log");
+    if (mq == -1) {
+        perror("mq_open");
+        exit(1);
+    }
 
-    hashmap_free(exclude);
+    int result = mq_send(mq, name_buf, NAME_BUF_SIZE, 0);
+    if (result == -1) {
+        perror("mq_send");
+        mq_close(mq);
+        exit(1);
+    }
+
+    mq_close(mq);
 }
 
 /* 현재 실행중인 프로세스 정보 노드를 생성하는 함수 */
-procPointer add_process(char* my_pid)
-{
-    struct stat         statbuf;
-    struct passwd*      passbuf; // 둘 모두 UserID를 가져오기 위함
-    char* proc_path = (char*)malloc(sizeof(char)*30); // progress 정보 얻는 경로
-
+procPointer add_process(char* my_pid) {
+    struct stat statbuf;
+    struct passwd* passbuf;                              // 둘 모두 UserID를 가져오기 위함
+    char* proc_path = (char*)malloc(sizeof(char) * 30);  // progress 정보 얻는 경로
 
     procPointer new_process = make_proc();
     new_process->next = NULL;
     unsigned long pid = atoll(my_pid);
-    new_process->pid = pid;             // process id
+    new_process->pid = pid;  // process id
 
     sprintf(proc_path, "/proc/%s/stat", my_pid);
-    stat(proc_path, &statbuf); // get stat
+    stat(proc_path, &statbuf);  // get stat
     new_process->uid = statbuf.st_uid;
     passbuf = getpwuid(new_process->uid);
-    strcpy(new_process->user_name, passbuf->pw_name); // get User name
+    strcpy(new_process->user_name, passbuf->pw_name);  // get User name
 
     /* Get all information from stat file : PR, NI, state */
     get_stat_file(&new_process, proc_path);
@@ -491,19 +479,17 @@ procPointer add_process(char* my_pid)
 }
 
 /* proc/PID/stat file에서 정보를 읽어옴 */
-void get_stat_file(procPointer* proc_info, char* path)
-{
-    LLI spid, ppid, sid, pgid, tty_nr, tty_pgrp, flags; // 나의 PID 부모 PID, 그룹 ID, process session ID, control하는 terminal, (모름), 리눅스 플래그
+void get_stat_file(procPointer* proc_info, char* path) {
+    LLI spid, ppid, sid, pgid, tty_nr, tty_pgrp, flags;  // 나의 PID 부모 PID, 그룹 ID, process session ID, control하는 terminal, (모름), 리눅스 플래그
     LLI min_flt, cmin_flt, maj_flt, cmaj_flt, utime, stimev;
     LLI cutime, cstime, priority, nice, num_threads, it_real_value;
-    LLI vsize, rss; // 메모리 사이즈, (모름)
-    unsigned long long start_time; // 프로세스 시작 시간
-    char state; // R, S, D, Z, T (S열 : 상태)
-    char* comm = (char*)malloc(sizeof(char)*256); // 실행 가능한 파일 이름
+    LLI vsize, rss;                                  // 메모리 사이즈, (모름)
+    unsigned long long start_time;                   // 프로세스 시작 시간
+    char state;                                      // R, S, D, Z, T (S열 : 상태)
+    char* comm = (char*)malloc(sizeof(char) * 256);  // 실행 가능한 파일 이름
 
-
-     /* process 정보가 담긴 stat 파일 열기 */
-    FILE *fp = fopen(path, "r");
+    /* process 정보가 담긴 stat 파일 열기 */
+    FILE* fp = fopen(path, "r");
     if (fp == NULL) {
         perror("Failed to open /proc/[pid]/stat file");
         exit(-1);
@@ -511,47 +497,41 @@ void get_stat_file(procPointer* proc_info, char* path)
 
     // process의 자세한 정보들을 읽어온다.
     fscanf(fp, "%lld %s %c %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %llu %lld %lld",
-        &spid, comm, &state, &ppid, &pgid, &sid, &tty_nr, &tty_pgrp, &flags, &min_flt, &cmin_flt, &maj_flt, &cmaj_flt, &utime, &stimev,
-        &cutime, &cstime, &priority, &nice, &num_threads, &it_real_value, &start_time, &vsize, &rss );
+           &spid, comm, &state, &ppid, &pgid, &sid, &tty_nr, &tty_pgrp, &flags, &min_flt, &cmin_flt, &maj_flt, &cmaj_flt, &utime, &stimev,
+           &cutime, &cstime, &priority, &nice, &num_threads, &it_real_value, &start_time, &vsize, &rss);
 
-
-
-    (*proc_info)->priority   = priority;           // PR
-    (*proc_info)->nice       = nice;               // NI
-    (*proc_info)->state      = state;              // State
-    (*proc_info)->utime      = utime;              // utime
-    (*proc_info)->stime      = stimev;             // stime
-    (*proc_info)->start_time = start_time;         // start time
-
+    (*proc_info)->priority = priority;      // PR
+    (*proc_info)->nice = nice;              // NI
+    (*proc_info)->state = state;            // State
+    (*proc_info)->utime = utime;            // utime
+    (*proc_info)->stime = stimev;           // stime
+    (*proc_info)->start_time = start_time;  // start time
 
     free(comm);
     fclose(fp);
 }
 
 /* proc/PID/status file에서 정보를 읽어옴 */
-void get_status_file(procPointer* proc_info, char* path)
-{
+void get_status_file(procPointer* proc_info, char* path) {
     /* process 정보가 담긴 status 파일 열기 */
-    FILE *fp = fopen(path, "r");
+    FILE* fp = fopen(path, "r");
     if (fp == NULL) {
         perror("Failed to open /proc/[pid]/status file");
         exit(-1);
     }
 
-    char* status_line = (char*)malloc(sizeof(char)*500);
-    char* name = (char*)malloc(sizeof(char)*50); // key를 읽어냄
+    char* status_line = (char*)malloc(sizeof(char) * 500);
+    char* name = (char*)malloc(sizeof(char) * 50);  // key를 읽어냄
 
-
-    (*proc_info)->virt = 0; // VIRT : 가상메모리 사용량
-    (*proc_info)->res = 0;  // RES  : 물리메모리 사용량
-    (*proc_info)->shr = 0;  // SHR  : 공유메모리 사용량
+    (*proc_info)->virt = 0;  // VIRT : 가상메모리 사용량
+    (*proc_info)->res = 0;   // RES  : 물리메모리 사용량
+    (*proc_info)->shr = 0;   // SHR  : 공유메모리 사용량
     /* status 파일 한 줄씩 읽기 */
-    while(fp != NULL && feof(fp) == 0)
-    {
-        fgets(status_line, sizeof(char)*500, fp);
+    while (fp != NULL && feof(fp) == 0) {
+        fgets(status_line, sizeof(char) * 500, fp);
         name = strtok(status_line, ":");
 
-        if(strcmp(name, "VmSize") == 0) // status 파일에 VmSize (VIRT 값 있으면 받아옴)
+        if (strcmp(name, "VmSize") == 0)  // status 파일에 VmSize (VIRT 값 있으면 받아옴)
         {
             name = strtok(NULL, "k");
             (*proc_info)->virt = atoll(name);
@@ -559,13 +539,12 @@ void get_status_file(procPointer* proc_info, char* path)
         }
     }
 
-    fseek(fp, 0, SEEK_SET); // 처음 위치로 돌림
-    while(fp != NULL && feof(fp) == 0)
-    {
-        fgets(status_line, sizeof(char)*500, fp);
+    fseek(fp, 0, SEEK_SET);  // 처음 위치로 돌림
+    while (fp != NULL && feof(fp) == 0) {
+        fgets(status_line, sizeof(char) * 500, fp);
         name = strtok(status_line, ":");
 
-        if(strcmp(name, "VmHWM") == 0) // status 파일에 VmHWM (RES 값 있으면 받아옴)
+        if (strcmp(name, "VmHWM") == 0)  // status 파일에 VmHWM (RES 값 있으면 받아옴)
         {
             name = strtok(NULL, "k");
             (*proc_info)->res = atoll(name);
@@ -573,13 +552,12 @@ void get_status_file(procPointer* proc_info, char* path)
         }
     }
 
-    fseek(fp, 0, SEEK_SET); // 처음 위치로 돌림
-    while(fp != NULL && feof(fp) == 0)
-    {
-        fgets(status_line, sizeof(char)*500, fp);
+    fseek(fp, 0, SEEK_SET);  // 처음 위치로 돌림
+    while (fp != NULL && feof(fp) == 0) {
+        fgets(status_line, sizeof(char) * 500, fp);
         name = strtok(status_line, ":");
 
-        if(strcmp(name, "RssFile") == 0) // status 파일에 RssFile (SHR 값 있으면 받아옴)
+        if (strcmp(name, "RssFile") == 0)  // status 파일에 RssFile (SHR 값 있으면 받아옴)
         {
             name = strtok(NULL, "k");
             (*proc_info)->shr = atoll(name);
@@ -587,20 +565,18 @@ void get_status_file(procPointer* proc_info, char* path)
         }
     }
 
-    fseek(fp, 0, SEEK_SET); // 처음 위치로 돌림
+    fseek(fp, 0, SEEK_SET);  // 처음 위치로 돌림
     // 이름은 무조건 있음
     fscanf(fp, "%s %s ", name, (*proc_info)->command);
 
     fclose(fp);
     return;
-
 }
 
 /* cpu 사용률 계산 + time 계산*/
-void get_cpu_use(procPointer* proc_info)
-{
+void get_cpu_use(procPointer* proc_info) {
     /* uptime이 담긴 /proc/uptime 파일 열기 */
-    FILE *fp = fopen("/proc/uptime", "r");
+    FILE* fp = fopen("/proc/uptime", "r");
     if (fp == NULL) {
         perror("Failed to open /proc/uptime file");
         exit(-1);
@@ -610,13 +586,13 @@ void get_cpu_use(procPointer* proc_info)
     int hertz = (int)sysconf(_SC_CLK_TCK);
     float uptime;
 
-    fscanf(fp, "%f ", &uptime); // uptime 계산
+    fscanf(fp, "%f ", &uptime);  // uptime 계산
 
     // cpu 사용량
-    (*proc_info)->cpu = (((*proc_info)->utime + (*proc_info)->stime) / hertz) / (uptime-((*proc_info)->start_time / hertz)) * 100;
+    (*proc_info)->cpu = (((*proc_info)->utime + (*proc_info)->stime) / hertz) / (uptime - ((*proc_info)->start_time / hertz)) * 100;
     // time+
     (*proc_info)->time = ((*proc_info)->utime + (*proc_info)->stime) / ((float)hertz / 100);
-    float front = ((*proc_info)->time * 100 / 60)/10000; // 어쩌다보니 이런 공식이 나옴... (대조하면 제일 앞은 맞음)
+    float front = ((*proc_info)->time * 100 / 60) / 10000;  // 어쩌다보니 이런 공식이 나옴... (대조하면 제일 앞은 맞음)
     (*proc_info)->convert_time = (LLI)front;
 
     fclose(fp);
@@ -624,23 +600,21 @@ void get_cpu_use(procPointer* proc_info)
 }
 
 /* mem 사용률 계산 */
-void get_mem_use(procPointer* proc_info)
-{
+void get_mem_use(procPointer* proc_info) {
     /* memTotal이 담긴 /proc/uptime 파일 열기 */
-    FILE *fp = fopen("/proc/meminfo", "r");
+    FILE* fp = fopen("/proc/meminfo", "r");
     if (fp == NULL) {
         perror("Failed to open /proc/meminfo file");
         exit(-1);
     }
 
     // 메모리 사용률 계산 : RES / memTotal
-    char* name = (char*)malloc(sizeof(char)*30);
+    char* name = (char*)malloc(sizeof(char) * 30);
     LLI memory;
 
     fscanf(fp, "%s %lld ", name, &memory);
-    (*proc_info)->mem = ((*proc_info)->res / (float)memory)*100;
+    (*proc_info)->mem = ((*proc_info)->res / (float)memory) * 100;
 
     fclose(fp);
     return;
 }
-

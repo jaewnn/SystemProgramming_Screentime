@@ -6,10 +6,10 @@ all:
 	make left_time.log
 
 screen_time: screen_time.o usage_time.o hashmap.o timelimit.o
-	sudo gcc -o screen_time screen_time.o usage_time.o hashmap.o timelimit.o -lcurses
+	sudo gcc -o screen_time screen_time.o usage_time.o hashmap.o timelimit.o -lcurses -lrt
 
 screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o
-	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o
+	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o -lrt
 
 screen_time.o: screen_time.c CODE/usage_time.h
 	gcc -Wall -g -c screen_time.c

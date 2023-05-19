@@ -2,6 +2,8 @@
 
 #include <ctype.h>
 #include <dirent.h>
+#include <fcntl.h>
+#include <mqueue.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -15,11 +17,15 @@
 
 #include "../hashmap.c/hashmap.h"
 
+#define PATH_BUF_SIZE 32
+#define NAME_BUF_SIZE 32
+
 int mday;
 struct hashmap* usage_time;
 struct hashmap* curr;
 struct hashmap* prev;
 struct hashmap* exclude;
+mqd_t mq;
 
 int record_compare(const void* a, const void* b, void* rdata) {
     const name_time* ra = a;
@@ -62,6 +68,9 @@ void setup_map() {
     curr = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     prev = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    read_map_from_file(exclude, "exclude_process.log");
+
+    mq = -1;
 }
 
 void cleanup_map() {
@@ -83,7 +92,7 @@ bool is_number_string(char* str) {
 }
 
 bool is_user_process(struct stat* stat_ptr, char* pid_str, int uid) {
-    char pid_path[32];
+    char pid_path[PATH_BUF_SIZE];
     sprintf(pid_path, "/proc/%s", pid_str);
 
     stat(pid_path, stat_ptr);
@@ -92,7 +101,7 @@ bool is_user_process(struct stat* stat_ptr, char* pid_str, int uid) {
 }
 
 void get_process_name_by_pid_string(char* buf_ptr, char* pid_str) {
-    char status_path[32];
+    char status_path[PATH_BUF_SIZE];
     sprintf(status_path, "/proc/%s/status", pid_str);
 
     FILE* fp = fopen(status_path, "r");
@@ -224,7 +233,7 @@ void read_usage_time_from_file() {
     struct tm* now_tm_ptr = localtime(&now);
     mday = now_tm_ptr->tm_mday;
 
-    char filename[32];
+    char filename[NAME_BUF_SIZE];
     sprintf(filename, "usage_time_%d.log", now_tm_ptr->tm_wday);
     read_map_from_file(usage_time, filename);
 
@@ -265,7 +274,7 @@ void write_usage_time_to_file() {
         hashmap_clear(usage_time, false);
     }
 
-    char filename[32];
+    char filename[NAME_BUF_SIZE];
     sprintf(filename, "usage_time_%d.log", now_tm_ptr->tm_wday);
 
     time_t access_time = read_access_time_from_file();
@@ -292,7 +301,6 @@ void write_usage_time_to_file() {
     }
 
     iter = 0;
-    read_map_from_file(exclude, "exclude_process.log");
     while (hashmap_iter(exclude, &iter, &item)) {
         const name_time* exclude_ptr = item;
         if (hashmap_get(usage_time, exclude_ptr))
@@ -304,4 +312,25 @@ void write_usage_time_to_file() {
 
     swap_curr_prev();
     hashmap_clear(curr, false);
+}
+
+void add_exclude_process_by_name(char* procname) {
+    name_time exclude_buf;
+    memset(&exclude_buf, 0, sizeof(name_time));
+    strcpy(exclude_buf.name, procname);
+    hashmap_set(exclude, &exclude_buf);
+    write_map_to_file(exclude, "exclude_process.log");
+}
+
+void exclude_process() {
+    if (mq == -1) {
+        mq = mq_open("/exclude_mq", O_RDONLY | O_NONBLOCK);
+        if (mq == -1) return;
+    }
+
+    char procname[NAME_BUF_SIZE];
+    int result = mq_receive(mq, procname, NAME_BUF_SIZE, NULL);
+    if (result == -1) return;
+
+    add_exclude_process_by_name(procname);
 }
