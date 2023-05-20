@@ -335,8 +335,8 @@ void set_timeLimit() {
     standend();
     refresh();  // time limit 설정
 
-    time_t limit;
-    scanf("%ld", &limit);
+    int limit;
+    scanf("%d", &limit);
 
     int i;
     time_t now = time(NULL);
@@ -348,7 +348,7 @@ void set_timeLimit() {
     FILE* fp = fopen(file_path, "r");
     char name[32];
     time_t usage_time;
-    time_t left_time;  // 남은 시간
+    int left_time;  // 남은 시간
     struct tm* date;
 
     for (i = 7; i < LINES - 5; i++) {
@@ -395,7 +395,7 @@ void set_timeLimit() {
         sprintf(pid_path, "There is no absolute path..");
 
     // 남는 시간 계산
-    left_time = limit - usage_time;
+    left_time = limit;
 
     /* 결과창 */
     move(LINES - 2, 0);
@@ -405,7 +405,7 @@ void set_timeLimit() {
 
     move(LINES - 1, 0);
     standout();
-    sprintf(str, "Name : %s, Timelimit : %ld(sec), PID : %s, LeftTime: %ld(sec), path: %s\n", name, limit, pid, left_time, pid_path);
+    sprintf(str, "Name : %s, Timelimit : %d(sec), PID : %s, LeftTime: %d(sec), path: %s\n", name, limit, pid, left_time, pid_path);
     addnstr(str, COLS);
     standend();
     refresh();  // time limit 설정
@@ -413,7 +413,7 @@ void set_timeLimit() {
     /* 파일 쓰기 */
     sprintf(file_path, "left_time.log");
     FILE* fp2 = fopen(file_path, "a");
-    sprintf(str, "\n%s;%s;%ld;%s", name, pid, left_time, pid_path);
+    sprintf(str, "\n%s;%s;%d;%s", name, pid, left_time, pid_path);
     fputs(str, fp2);
 
     // sleep(5)
