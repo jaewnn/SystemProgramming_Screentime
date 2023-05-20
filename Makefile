@@ -12,7 +12,7 @@ screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o
 	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o -lrt
 
 screen_time.o: screen_time.c CODE/usage_time.h
-	gcc -Wall -g -c screen_time.c
+	sudo gcc -Wall -g -c screen_time.c
 
 screen_time_daemon.o: screen_time_daemon.c CODE/usage_time.h
 	gcc -Wall -g -c screen_time_daemon.c

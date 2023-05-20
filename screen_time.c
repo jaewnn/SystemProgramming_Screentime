@@ -26,6 +26,8 @@
 #define EXCLUDE_FROM_LIST '2'
 #define EXIT '3'
 
+int timeLimitSIG = 0;
+
 typedef unsigned long long int LLI;
 typedef struct proc* procPointer;
 typedef struct proc {
@@ -104,6 +106,9 @@ int main(int argc, char* argv[]) {
             print_legend();
             print_data();
             print_menu();
+            if(timeLimitSIG == 1){
+                time_limit();
+            }
         }
     }
     endwin();
@@ -408,6 +413,7 @@ void set_timeLimit() {
     sprintf(str, "Name : %s, Timelimit : %d(sec), PID : %s, LeftTime: %d(sec), path: %s\n", name, limit, pid, left_time, pid_path);
     addnstr(str, COLS);
     standend();
+    timeLimitSIG = 1;
     refresh();  // time limit 설정
 
     /* 파일 쓰기 */

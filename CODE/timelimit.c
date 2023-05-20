@@ -92,18 +92,18 @@ void execute_recover(){ // 실행 권한 복구
 }
 
 void time_limit(){
-	FILE* LT = fopen("../left_time.log","r"); // 시간제한 파일을 읽어옴
-	FILE* tf = fopen("../temp.log","w");
+	FILE* LT = fopen("left_time.log","r"); // 시간제한 파일을 읽어옴
+	FILE* tf = fopen("temp.log","w");
 	char line[MAX_LINE_LENGTH];
 	char tokens[MAX_TOKENS][MAX_TOKEN_LENGTH];
 	int numTokens = 0;
 	
 	if(LT == NULL){
-		printf("cannot open file\n");
+		printf("left_time cannot open file\n");
 		return;
 	}
 	if(tf == NULL){
-		printf("cannot open temp file\n");
+		printf("temp cannot open temp file\n");
 		return;
 	}
 
@@ -111,6 +111,7 @@ void time_limit(){
 	long file_size = ftell(LT);
 	if(file_size == 0){ // case that file information is zero
 		fclose(LT);
+		fclose(tf);
 		return;
 	}
 	
@@ -149,10 +150,10 @@ void time_limit(){
 	fclose(LT);
 
 	// original file remove
-	remove("../left_time.log");
+	remove("left_time.log");
 	
 	// change temp file to original file
-	rename("../temp.log","../left_time.log");
+	rename("temp.log","left_time.log");
 
 	refresh();
 	return;
