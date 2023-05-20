@@ -106,9 +106,9 @@ int main(int argc, char* argv[]) {
             print_legend();
             print_data();
             print_menu();
-            if(timeLimitSIG == 1){
-                time_limit();
-            }
+//            if(timeLimitSIG == 1){
+  //              time_limit();
+//            }
         }
     }
     endwin();
