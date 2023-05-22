@@ -88,7 +88,7 @@ void execute_recover(){ // 실행 권한 복구
 		perror("Error opening file");
 	}
 
-	refresh();
+	// refresh();
 }
 
 void time_limit(){
@@ -117,10 +117,7 @@ void time_limit(){
 	
 	rewind(LT); // file pointer go to first
 
-	int lineCount = 0;	
 	while(fgets(line,sizeof(line),LT)){
-		lineCount++;
-		if(lineCount<=1) continue; // two of initial line is skipped
 
 		char temp[MAX_LINE_LENGTH];
 		strcpy(temp,line);
@@ -155,6 +152,6 @@ void time_limit(){
 	// change temp file to original file
 	rename("temp.log","left_time.log");
 
-	refresh();
+	// refresh();
 	return;
 }
