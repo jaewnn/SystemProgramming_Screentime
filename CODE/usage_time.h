@@ -39,6 +39,4 @@ void write_usage_time_to_file();
 void add_exclude_process_by_name(char* procname);
 void exclude_process();
 
-void execute_recover();
-
 #endif
