@@ -8,13 +8,13 @@ all:
 screen_time: screen_time.o usage_time.o hashmap.o timelimit.o
 	sudo gcc -o screen_time screen_time.o usage_time.o hashmap.o timelimit.o -lcurses -lrt
 
-screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o
-	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o -lrt
+screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o timelimit.o
+	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o timelimit.o -lrt
 
-screen_time.o: screen_time.c CODE/usage_time.h
+screen_time.o: screen_time.c CODE/usage_time.h CODE/timelimit.h
 	sudo gcc -Wall -g -c screen_time.c
 
-screen_time_daemon.o: screen_time_daemon.c CODE/usage_time.h
+screen_time_daemon.o: screen_time_daemon.c CODE/usage_time.h CODE/timelimit.h
 	gcc -Wall -g -c screen_time_daemon.c
 
 timelimit.o: CODE/timelimit.c CODE/timelimit.h

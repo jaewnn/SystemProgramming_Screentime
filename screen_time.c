@@ -13,6 +13,7 @@
 #include <utime.h>
 
 #include "CODE/usage_time.h"
+#include "CODE/timelimit.h"
 
 #define MAX_DATA_LINES 64
 #define LEGEND_LINE_FROM_TOP 6

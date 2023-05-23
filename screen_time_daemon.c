@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "CODE/usage_time.h"
+#include "CODE/timelimit.h"
 
 void upDateLimit(int);
 
@@ -45,6 +46,7 @@ int main(int argc, char* argv[]) {
         write_usage_time_to_file();
         if (verbose) puts("usage time recorded...");
         upDateLimit(interval);
+        // time_limit();
     }
 
     cleanup_map();
