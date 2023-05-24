@@ -12,12 +12,14 @@
 #include <unistd.h>
 #include <utime.h>
 
-#include "CODE/usage_time.h"
 #include "CODE/timelimit.h"
+#include "CODE/usage_time.h"
 
 #define MAX_DATA_LINES 64
-#define LEGEND_LINE_FROM_TOP 6
-#define DATA_LINE_FROM_TOP 7
+#define ACCESS_TIME_LINE_FROM_TOP 0
+#define GRAPH_LINE_FROM_TOP 2
+#define LEGEND_LINE_FROM_TOP 10
+#define DATA_LINE_FROM_TOP 11
 #define DATA_LINE_FROM_BOTTOM 7
 #define INPUT_LINE_FROM_BOTTOM 6
 
@@ -26,6 +28,8 @@
 #define SET_TIME_LIMIT '1'
 #define EXCLUDE_FROM_LIST '2'
 #define EXIT '3'
+
+#define WEEK 7
 
 int timeLimitSIG = 0;
 
@@ -62,7 +66,10 @@ void get_status_file(procPointer*, char*);
 void get_cpu_use(procPointer*);
 void get_mem_use(procPointer*);
 
+void read_prev_usage_time();
 void read_usage_time();
+void print_access_time();
+void print_graph();
 void print_legend();
 void print_data();
 void print_menu();
@@ -79,6 +86,8 @@ int usage_time_count;
 
 char name_buf[NAME_BUF_SIZE];
 
+time_t prev_usage_time[WEEK];
+
 int main(int argc, char* argv[]) {
     // 실행권한 복구 하는 옵션
     if ((argc == 2) && (strcmp(argv[1], "-r") == 0)) {
@@ -93,6 +102,8 @@ int main(int argc, char* argv[]) {
     timeout(0);
     curs_set(0);  // diable cursor
 
+    read_prev_usage_time();
+
     while (1) {
         int key = getch();
 
@@ -104,12 +115,14 @@ int main(int argc, char* argv[]) {
             break;
         } else {
             read_usage_time();
+            print_access_time();
+            print_graph();
             print_legend();
             print_data();
             print_menu();
-//            if(timeLimitSIG == 1){
-  //              time_limit();
-//            }
+            //            if(timeLimitSIG == 1){
+            //              time_limit();
+            //            }
         }
     }
     endwin();
@@ -135,6 +148,55 @@ procPointer make_proc() {
     proc_node->next = NULL;
 
     return proc_node;
+}
+
+void print_access_time() {
+    FILE* fp = fopen("access_time.log", "r");
+    if (fp == NULL)
+        sprintf(str, "Access time: None");
+    else {
+        time_t access_time;
+        fscanf(fp, "%ld", &access_time);
+        sprintf(str, "Access time: %s", ctime(&access_time));
+        fclose(fp);
+    }
+
+    move(ACCESS_TIME_LINE_FROM_TOP, 0);
+    addnstr(str, COLS);
+    refresh();
+}
+
+void print_graph() {
+    time_t now = time(NULL);
+    struct tm* now_tm_ptr = localtime(&now);
+
+    for (int i = 0; i < WEEK; i++) {
+        int weekday = (now_tm_ptr->tm_wday + i + 1) % WEEK;
+        int width = (prev_usage_time[weekday] * (COLS - 4)) / (24 * 60 * 60);
+
+        char graph[COLS];
+        memset(graph, ' ', COLS);
+        memset(graph, '|', width);
+
+        if (weekday == 0)
+            sprintf(str, "SUN %s", graph);
+        if (weekday == 1)
+            sprintf(str, "MON %s", graph);
+        if (weekday == 2)
+            sprintf(str, "TUE %s", graph);
+        if (weekday == 3)
+            sprintf(str, "WED %s", graph);
+        if (weekday == 4)
+            sprintf(str, "THU %s", graph);
+        if (weekday == 5)
+            sprintf(str, "FRI %s", graph);
+        if (weekday == 6)
+            sprintf(str, "SAT %s", graph);
+
+        move(GRAPH_LINE_FROM_TOP + i, 0);
+        addnstr(str, COLS);
+    }
+    refresh();
 }
 
 void print_legend() {
@@ -269,6 +331,32 @@ void print_menu() {
     refresh();
 }
 
+void read_prev_usage_time() {
+    memset(prev_usage_time, 0, sizeof(time_t) * WEEK);
+
+    time_t now = time(NULL);
+    struct tm* now_tm_ptr = localtime(&now);
+
+    for (int i = 0; i < WEEK; i++) {
+        if (i == now_tm_ptr->tm_wday) continue;
+
+        char filename[32];
+        sprintf(filename, "usage_time_%d.log", i);
+
+        FILE* fp = fopen(filename, "r");
+        if (fp == NULL) continue;
+
+        char name_buf[NAME_BUF_SIZE];
+        time_t time_buf;
+        while (!feof(fp)) {
+            fscanf(fp, "%s %ld\n", name_buf, &time_buf);
+            prev_usage_time[i] += time_buf;
+        }
+
+        fclose(fp);
+    }
+}
+
 void read_usage_time() {
     memset(usage_time_arr, 0, sizeof(name_time) * MAX_DATA_LINES);
     usage_time_count = 0;
@@ -279,12 +367,23 @@ void read_usage_time() {
     char filename[32];
     sprintf(filename, "usage_time_%d.log", now_tm_ptr->tm_wday);
 
+    prev_usage_time[now_tm_ptr->tm_wday] = 0;
+
     FILE* fp = fopen(filename, "r");
     if (fp == NULL) return;
 
+    char name_buf[NAME_BUF_SIZE];
+    time_t time_buf;
     while (!feof(fp)) {
-        fscanf(fp, "%s %ld\n", usage_time_arr[usage_time_count].name, &usage_time_arr[usage_time_count].time);
-        usage_time_count++;
+        if (usage_time_count < MAX_DATA_LINES) {
+            fscanf(fp, "%s %ld\n", usage_time_arr[usage_time_count].name, &usage_time_arr[usage_time_count].time);
+            prev_usage_time[now_tm_ptr->tm_wday] += usage_time_arr[usage_time_count].time;
+            usage_time_count++;
+        } else {
+            fscanf(fp, "%s %ld\n", name_buf, &time_buf);
+            prev_usage_time[now_tm_ptr->tm_wday] += time_buf;
+            usage_time_count++;
+        }
     }
 
     fclose(fp);
