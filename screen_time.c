@@ -488,15 +488,15 @@ void set_timeLimit() {
                     strcpy(pid, dirent_ptr->d_name);
                     break;
                 }
-                memset(pid_name, 0, 30);
+                memset(pid_name, 0, 50);
             }
         }
     }
 
     /* 경로 읽어오기 */
     sprintf(file_path, "/proc/%s/exe", pid);
-    char pid_path[200];
-    if (readlink(file_path, pid_path, 200) == -1)
+    char pid_path[100];
+    if (readlink(file_path, pid_path, 100) == -1)
         sprintf(pid_path, "There is no absolute path..");
 
     // 남는 시간 계산
