@@ -176,7 +176,7 @@ void print_graph() {
 
         char graph[COLS];
         memset(graph, ' ', COLS);
-        memset(graph, '|', width);
+        memset(graph, '|', width < COLS ? width : COLS);
 
         if (weekday == 0)
             sprintf(str, "SUN %s", graph);
