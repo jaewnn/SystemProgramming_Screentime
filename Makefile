@@ -5,21 +5,19 @@ all:
 	make screen_time_daemon
 	make left_time.log
 	make sample_data
+	make execute_remove.log
 
-screen_time: screen_time.o usage_time.o hashmap.o timelimit.o
-	sudo gcc -o screen_time screen_time.o usage_time.o hashmap.o timelimit.o -lcurses -lrt
+screen_time: screen_time.o usage_time.o hashmap.o
+	gcc -o screen_time screen_time.o usage_time.o hashmap.o -lcurses -lrt
 
-screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o timelimit.o
-	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o timelimit.o -lrt
+screen_time_daemon: screen_time_daemon.o usage_time.o hashmap.o
+	gcc -o screen_time_daemon screen_time_daemon.o usage_time.o hashmap.o -lrt
 
-screen_time.o: screen_time.c CODE/usage_time.h CODE/timelimit.h
-	sudo gcc -Wall -g -c screen_time.c
+screen_time.o: screen_time.c CODE/usage_time.h
+	gcc -Wall -g -c screen_time.c
 
-screen_time_daemon.o: screen_time_daemon.c CODE/usage_time.h CODE/timelimit.h
+screen_time_daemon.o: screen_time_daemon.c CODE/usage_time.h
 	gcc -Wall -g -c screen_time_daemon.c
-
-timelimit.o: CODE/timelimit.c CODE/timelimit.h
-	sudo gcc -Wall -g -c CODE/timelimit.c
 
 usage_time.o: CODE/usage_time.c CODE/usage_time.h hashmap.c/hashmap.h
 	gcc -Wall -g -c CODE/usage_time.c
@@ -29,6 +27,9 @@ hashmap.o: hashmap.c/hashmap.c hashmap.c/hashmap.h
 
 left_time.log:
 	echo "" > left_time.log
+
+execute_remove.log:
+	echo "" > execute_remove.log
 
 sample_data:
 	echo "sample 10000" > usage_time_0.log

@@ -20,6 +20,10 @@
 #define PATH_BUF_SIZE 32
 #define NAME_BUF_SIZE 32
 
+#define MAX_TOKENS 4
+#define MAX_TOKEN_LENGTH 100
+#define MAX_LINE_LENGTH 100
+
 int mday;
 struct hashmap* usage_time;
 struct hashmap* curr;
@@ -333,4 +337,57 @@ void exclude_process() {
     if (result == -1) return;
 
     add_exclude_process_by_name(procname);
+}
+
+void execute_recover(){ // 실행 권한 복구
+	FILE* fp = fopen("execute_remove.log","r");
+	if(fp == NULL){
+		perror("Error opening file");
+		return;
+	}
+
+	fseek(fp,0,SEEK_END);
+	long file_size = ftell(fp);
+	if(file_size == 0){ // case that file information is zero
+		printf("NO executable file to recover\n");
+		fclose(fp);
+		return;
+	}
+	
+	rewind(fp); // file pointer go to first
+
+	char line[MAX_LINE_LENGTH];
+	struct stat file_stat;
+
+	while(fgets(line,sizeof(line),fp)){
+		line[strcspn(line,"\n")] = '\0'; // remove the newline character
+
+		if(stat(line,&file_stat)==0){
+			mode_t current_permissions =file_stat.st_mode;
+
+			current_permissions |= S_IXUSR | S_IXGRP | S_IXOTH; 
+
+			chmod(line, current_permissions); // 실행권한 복구
+			time_t timer = time(NULL);
+			struct tm* t = localtime(&timer);
+			printf("%d/%d/%d %d:%d:%d\tpermission is recovered : %s\n",
+					t->tm_hour+1900,t->tm_mon+1,t->tm_mday,t->tm_hour,t->tm_min,t->tm_sec,line);
+		}
+		else{
+			perror("stat");
+			break;
+		}
+	}
+
+	fclose(fp);
+	// 파일 권한 복구 완료했으므로 파일 내용 삭제
+	FILE* file = fopen("execute_remove.log", "w"); // 파일을 쓰기 모드로 열기 (기존 내용 삭제)
+    	if (file != NULL) {
+        	fclose(file); // 파일 닫기
+    	}
+	else{
+		perror("Error opening file");
+	}
+
+	// refresh();
 }

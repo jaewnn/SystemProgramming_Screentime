@@ -20,7 +20,7 @@ void splitString(char* str,char tokens[MAX_TOKENS][MAX_TOKEN_LENGTH],int* numTok
 
 
 void execute_remove(char* program_path){
-	FILE* fp = fopen("execute_remove.txt","a");
+	FILE* fp = fopen("execute_remove.log","a");
     	// 실행 권한을 제거할 모드
     	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 
@@ -39,7 +39,7 @@ void execute_remove(char* program_path){
 }
 
 void execute_recover(){ // 실행 권한 복구
-	FILE* fp = fopen("execute_remove.txt","r");
+	FILE* fp = fopen("execute_remove.log","r");
 	if(fp == NULL){
 		perror("Error opening file");
 		return;
@@ -80,7 +80,7 @@ void execute_recover(){ // 실행 권한 복구
 
 	fclose(fp);
 	// 파일 권한 복구 완료했으므로 파일 내용 삭제
-	FILE* file = fopen("execute_remove.txt", "w"); // 파일을 쓰기 모드로 열기 (기존 내용 삭제)
+	FILE* file = fopen("execute_remove.log", "w"); // 파일을 쓰기 모드로 열기 (기존 내용 삭제)
     	if (file != NULL) {
         	fclose(file); // 파일 닫기
     	}

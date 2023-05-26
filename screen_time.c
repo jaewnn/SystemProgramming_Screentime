@@ -87,7 +87,7 @@ int usage_time_count;
 char name_buf[NAME_BUF_SIZE];
 
 time_t prev_usage_time[WEEK];
-
+// 복구할때는 sudo ./screen_time -r 이렇게 실행해줘야함
 int main(int argc, char* argv[]) {
     // 실행권한 복구 하는 옵션
     if ((argc == 2) && (strcmp(argv[1], "-r") == 0)) {
@@ -120,9 +120,6 @@ int main(int argc, char* argv[]) {
             print_legend();
             print_data();
             print_menu();
-            //            if(timeLimitSIG == 1){
-            //              time_limit();
-            //            }
         }
     }
     endwin();
