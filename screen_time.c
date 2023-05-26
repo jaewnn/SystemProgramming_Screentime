@@ -496,6 +496,7 @@ void set_timeLimit() {
     /* 경로 읽어오기 */
     sprintf(file_path, "/proc/%s/exe", pid);
     char pid_path[100];
+    memset(pid_path, 0, 100);
     if (readlink(file_path, pid_path, 100) == -1)
         sprintf(pid_path, "There is no absolute path..");
 
