@@ -1,6 +1,7 @@
 .PHONY: all log clean
 
 all:
+	mkdir -p obj
 	make screen_time
 	make screen_time_daemon
 	make log
