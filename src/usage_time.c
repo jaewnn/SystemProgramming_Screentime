@@ -305,10 +305,6 @@ void read_usage_time_from_file() {
 void write_usage_time_to_file() {
     time_t now = time(NULL);
     struct tm *now_tm_ptr = localtime(&now);
-    if (mday != now_tm_ptr->tm_mday) {
-        mday = now_tm_ptr->tm_mday;
-        hashmap_clear(usage_time, false);
-    }
 
     char filename[NAME_BUF_SIZE];
     sprintf(filename, "log/usage_time_%d.log", now_tm_ptr->tm_wday);
@@ -418,5 +414,16 @@ void process_message() {
     if (strcmp(func, "exclude") == 0) {
         char *procname = strtok(NULL, " ");
         add_exclude_process_by_name(procname);
+    }
+}
+
+void process_day_changed() {
+    time_t now = time(NULL);
+    struct tm *now_tm_ptr = localtime(&now);
+
+    if (mday != now_tm_ptr->tm_mday) {
+        mday = now_tm_ptr->tm_mday;
+        hashmap_clear(usage_time, false);
+        hashmap_clear(lefted, false);
     }
 }

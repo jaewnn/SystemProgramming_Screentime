@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
     while (1) {
         sleep(interval);
         process_message();
+        process_day_changed();
         write_usage_time_to_file();
         update_lefted(interval);
 

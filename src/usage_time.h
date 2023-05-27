@@ -41,4 +41,6 @@ void add_exclude_process_by_name(char *procname);
 void add_time_lefted(char *procname, int time_lefted);
 void process_message();
 
+void process_day_changed();
+
 #endif
