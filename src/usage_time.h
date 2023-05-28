@@ -8,9 +8,11 @@
 
 #include "../hashmap.c/hashmap.h"
 
+#define MAP_BUF_SIZE 64
+
 typedef struct {
     time_t time;
-    char name[32];
+    char name[MAP_BUF_SIZE];
 } name_time;
 
 int record_compare(const void *a, const void *b, void *rdata);
@@ -42,5 +44,6 @@ void add_time_lefted(char *procname, int time_lefted);
 void process_message();
 
 void process_day_changed();
+void restore_exe_permission();
 
 #endif

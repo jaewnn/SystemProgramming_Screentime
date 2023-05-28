@@ -28,6 +28,7 @@ struct hashmap *usage_time;
 struct hashmap *curr;
 struct hashmap *prev;
 struct hashmap *lefted;
+struct hashmap *exe;
 struct hashmap *exclude;
 mqd_t mq;
 
@@ -65,19 +66,23 @@ void setup_map() {
     curr = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     prev = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     lefted = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
+    exe = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
     exclude = hashmap_new(sizeof(name_time), 0, 0, 0, record_hash, record_compare, NULL, NULL);
 
     read_map_from_file(lefted, "log/left_time.log");
+    read_map_from_file(exe, "log/exe.log");
     read_map_from_file(exclude, "log/exclude_process.log");
 
     mq = -1;
 }
 
 void cleanup_map() {
+    restore_exe_permission();
     hashmap_free(usage_time);
     hashmap_free(curr);
     hashmap_free(prev);
     hashmap_free(lefted);
+    hashmap_free(exe);
     hashmap_free(exclude);
     puts("\ngoodbye...");
     exit(EXIT_SUCCESS);
@@ -361,7 +366,31 @@ void update_lefted(time_t interval) {
 
             hashmap_set(lefted, &lefted_buf);
             if (lefted_buf.time <= 0) {
-                kill(get_pid_by_process_name(lefted_buf.name), SIGTERM);
+                pid_t pid = get_pid_by_process_name(lefted_buf.name);
+                if (pid == -1)
+                    continue;
+
+                char link_path_buf[PATH_BUF_SIZE];
+                sprintf(link_path_buf, "/proc/%d/exe", pid);
+
+                char exe_path_buf[PATH_BUF_SIZE];
+                memset(exe_path_buf, 0, PATH_BUF_SIZE);
+                readlink(link_path_buf, exe_path_buf, PATH_BUF_SIZE);
+
+                struct stat stat_buf;
+                stat(exe_path_buf, &stat_buf);
+
+                name_time exe_buf;
+                memset(&exe_buf, 0, sizeof(name_time));
+                strcpy(exe_buf.name, exe_path_buf);
+                hashmap_set(exe, &exe_buf);
+                write_map_to_file(exe, "log/exe.log");
+
+                mode_t mode = stat_buf.st_mode;
+                mode &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
+                chmod(exe_path_buf, mode);
+
+                kill(pid, SIGTERM);
             }
         }
     }
@@ -423,7 +452,24 @@ void process_day_changed() {
 
     if (mday != now_tm_ptr->tm_mday) {
         mday = now_tm_ptr->tm_mday;
+        restore_exe_permission();
         hashmap_clear(usage_time, false);
         hashmap_clear(lefted, false);
+        hashmap_clear(exe, false);
+    }
+}
+
+void restore_exe_permission() {
+    size_t iter = 0;
+    void *item;
+    while (hashmap_iter(exe, &iter, &item)) {
+        const name_time *exe_ptr = item;
+
+        struct stat stat_buf;
+        stat(exe_ptr->name, &stat_buf);
+
+        mode_t mode = stat_buf.st_mode;
+        mode |= S_IXUSR | S_IXGRP | S_IXOTH;
+        chmod(exe_ptr->name, mode);
     }
 }

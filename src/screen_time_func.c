@@ -162,7 +162,7 @@ void exclude_from_list() {
 }
 
 void read_usage_time() {
-    memset(data_arr, 0, sizeof(name_time) * MAX_DATA_LINES);
+    memset(data_arr, 0, sizeof(data) * MAX_DATA_LINES);
     data_count = 0;
 
     time_t now = time(NULL);
