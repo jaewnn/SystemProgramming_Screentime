@@ -159,7 +159,7 @@ void get_status_file(procPointer* proc_info, char* path) {
     }
 
     char status_line[500];
-    char name[50];  // key를 읽어냄
+    char* name;  // key를 읽어냄
 
     (*proc_info)->virt = 0;  // VIRT : 가상메모리 사용량
     (*proc_info)->res = 0;   // RES  : 물리메모리 사용량
