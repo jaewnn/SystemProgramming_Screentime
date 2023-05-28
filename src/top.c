@@ -57,7 +57,7 @@ int top_get_process_name_by_pid_string(char* target_name, char* pid)
 
 void get_info_from_name(procPointer* info, char* name) {
     
-DIR* dir_ptr;
+    DIR* dir_ptr;
     struct dirent* dirent_ptr;
     char pid_name[256];
     char pid[30];
@@ -210,6 +210,8 @@ void get_status_file(procPointer* proc_info, char* path) {
     // 이름은 무조건 있음
     fscanf(fp, "%s %s ", name, (*proc_info)->command);
 
+    free(status_line);
+    free(name);
     fclose(fp);
     return;
 }
@@ -256,6 +258,7 @@ void get_mem_use(procPointer* proc_info) {
     fscanf(fp, "%s %lld ", name, &memory);
     (*proc_info)->mem = ((*proc_info)->res / (float)memory) * 100;
 
+    free(name);
     fclose(fp);
     return;
 }
