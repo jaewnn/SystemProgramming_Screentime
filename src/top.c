@@ -90,7 +90,7 @@ void get_info_from_name(procPointer* info, char* name) {
 procPointer add_process(char* my_pid) {
     struct stat statbuf;
     struct passwd* passbuf;                              // 둘 모두 UserID를 가져오기 위함
-    char* proc_path = (char*)malloc(sizeof(char) * 30);  // progress 정보 얻는 경로
+    char proc_path[30];  // progress 정보 얻는 경로
 
     procPointer new_process = make_proc();
     new_process->next = NULL;
@@ -114,8 +114,6 @@ procPointer add_process(char* my_pid) {
     get_cpu_use(&new_process);
     get_mem_use(&new_process);
 
-    free(proc_path);
-
     return new_process;
 }
 
@@ -127,7 +125,7 @@ void get_stat_file(procPointer* proc_info, char* path) {
     LLI vsize, rss;                                  // 메모리 사이즈, (모름)
     unsigned long long start_time;                   // 프로세스 시작 시간
     char state;                                      // R, S, D, Z, T (S열 : 상태)
-    char* comm = (char*)malloc(sizeof(char) * 256);  // 실행 가능한 파일 이름
+    char comm[256];  // 실행 가능한 파일 이름
 
     /* process 정보가 담긴 stat 파일 열기 */
     FILE* fp = fopen(path, "r");
@@ -148,7 +146,6 @@ void get_stat_file(procPointer* proc_info, char* path) {
     (*proc_info)->stime = stimev;           // stime
     (*proc_info)->start_time = start_time;  // start time
 
-    free(comm);
     fclose(fp);
 }
 
@@ -161,15 +158,15 @@ void get_status_file(procPointer* proc_info, char* path) {
         exit(-1);
     }
 
-    char* status_line = (char*)malloc(sizeof(char) * 500);
-    char* name = (char*)malloc(sizeof(char) * 50);  // key를 읽어냄
+    char status_line[500];
+    char name[50];  // key를 읽어냄
 
     (*proc_info)->virt = 0;  // VIRT : 가상메모리 사용량
     (*proc_info)->res = 0;   // RES  : 물리메모리 사용량
     (*proc_info)->shr = 0;   // SHR  : 공유메모리 사용량
     /* status 파일 한 줄씩 읽기 */
     while (fp != NULL && feof(fp) == 0) {
-        fgets(status_line, sizeof(char) * 500, fp);
+        fgets(status_line, 500, fp);
         name = strtok(status_line, ":");
 
         if (strcmp(name, "VmSize") == 0)  // status 파일에 VmSize (VIRT 값 있으면 받아옴)
@@ -182,7 +179,7 @@ void get_status_file(procPointer* proc_info, char* path) {
 
     fseek(fp, 0, SEEK_SET);  // 처음 위치로 돌림
     while (fp != NULL && feof(fp) == 0) {
-        fgets(status_line, sizeof(char) * 500, fp);
+        fgets(status_line, 500, fp);
         name = strtok(status_line, ":");
 
         if (strcmp(name, "VmHWM") == 0)  // status 파일에 VmHWM (RES 값 있으면 받아옴)
@@ -195,7 +192,7 @@ void get_status_file(procPointer* proc_info, char* path) {
 
     fseek(fp, 0, SEEK_SET);  // 처음 위치로 돌림
     while (fp != NULL && feof(fp) == 0) {
-        fgets(status_line, sizeof(char) * 500, fp);
+        fgets(status_line, 500, fp);
         name = strtok(status_line, ":");
 
         if (strcmp(name, "RssFile") == 0)  // status 파일에 RssFile (SHR 값 있으면 받아옴)
@@ -209,9 +206,6 @@ void get_status_file(procPointer* proc_info, char* path) {
     fseek(fp, 0, SEEK_SET);  // 처음 위치로 돌림
     // 이름은 무조건 있음
     fscanf(fp, "%s %s ", name, (*proc_info)->command);
-
-    free(status_line);
-    free(name);
     fclose(fp);
     return;
 }
@@ -252,13 +246,12 @@ void get_mem_use(procPointer* proc_info) {
     }
 
     // 메모리 사용률 계산 : RES / memTotal
-    char* name = (char*)malloc(sizeof(char) * 30);
+    char name[30];
     LLI memory;
 
     fscanf(fp, "%s %lld ", name, &memory);
     (*proc_info)->mem = ((*proc_info)->res / (float)memory) * 100;
 
-    free(name);
     fclose(fp);
     return;
 }
