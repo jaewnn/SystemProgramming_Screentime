@@ -28,8 +28,6 @@ procPointer make_proc() {
     proc_node->cpu = 0;  // cpu 사용률
     proc_node->mem = 0;  // 메모리 사용률
 
-    proc_node->next = NULL;
-
     return proc_node;
 }
 
@@ -81,40 +79,38 @@ void get_info_from_name(procPointer* info, char* name) {
     }
 
     if (atoll(pid) != 0)
-        (*info) = add_process(pid);
+        add_process(pid, info);
 
     closedir(dir_ptr);
 }
 
 /* 현재 실행중인 프로세스 정보 노드를 생성하는 함수 */
-procPointer add_process(char* my_pid) {
+void add_process(char* my_pid, procPointer* info) {
     struct stat statbuf;
     struct passwd* passbuf;                              // 둘 모두 UserID를 가져오기 위함
     char proc_path[30];  // progress 정보 얻는 경로
 
-    procPointer new_process = make_proc();
-    new_process->next = NULL;
     unsigned long pid = atoll(my_pid);
-    new_process->pid = pid;  // process id
+    (*info)->pid = pid;  // process id
 
     sprintf(proc_path, "/proc/%s/stat", my_pid);
     stat(proc_path, &statbuf);  // get stat
-    new_process->uid = statbuf.st_uid;
-    passbuf = getpwuid(new_process->uid);
-    strcpy(new_process->user_name, passbuf->pw_name);  // get User name
+    (*info)->uid = statbuf.st_uid;
+    passbuf = getpwuid((*info)->uid);
+    strcpy((*info)->user_name, passbuf->pw_name);  // get User name
 
     /* Get all information from stat file : PR, NI, state */
-    get_stat_file(&new_process, proc_path);
+    get_stat_file(info, proc_path);
 
     /* Get all information from status file : VIRT, RES, SHR, Command */
     sprintf(proc_path, "/proc/%s/status", my_pid);
-    get_status_file(&new_process, proc_path);
+    get_status_file(info, proc_path);
 
     /* Bring Cpu and Memory using rate */
-    get_cpu_use(&new_process);
-    get_mem_use(&new_process);
+    get_cpu_use(info);
+    get_mem_use(info);
 
-    return new_process;
+    return;
 }
 
 /* proc/PID/stat file에서 정보를 읽어옴 */
