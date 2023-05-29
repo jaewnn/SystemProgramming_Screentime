@@ -28,6 +28,8 @@ procPointer make_proc() {
     proc_node->cpu = 0;  // cpu 사용률
     proc_node->mem = 0;  // 메모리 사용률
 
+    proc_node->next = NULL;
+
     return proc_node;
 }
 
@@ -79,17 +81,18 @@ void get_info_from_name(procPointer* info, char* name) {
     }
 
     if (atoll(pid) != 0)
-        add_process(pid, info);
+        add_process(info, pid);
 
     closedir(dir_ptr);
 }
 
 /* 현재 실행중인 프로세스 정보 노드를 생성하는 함수 */
-void add_process(char* my_pid, procPointer* info) {
+void add_process(procPointer* info, char* my_pid) {
     struct stat statbuf;
     struct passwd* passbuf;                              // 둘 모두 UserID를 가져오기 위함
     char proc_path[30];  // progress 정보 얻는 경로
 
+    (*info)->next = NULL;
     unsigned long pid = atoll(my_pid);
     (*info)->pid = pid;  // process id
 
@@ -109,8 +112,6 @@ void add_process(char* my_pid, procPointer* info) {
     /* Bring Cpu and Memory using rate */
     get_cpu_use(info);
     get_mem_use(info);
-
-    return;
 }
 
 /* proc/PID/stat file에서 정보를 읽어옴 */

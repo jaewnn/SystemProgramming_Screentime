@@ -84,6 +84,9 @@ void cleanup_map() {
     hashmap_free(lefted);
     hashmap_free(exe);
     hashmap_free(exclude);
+    if (mq != -1) {
+        mq_close(mq);
+    }
     puts("\ngoodbye...");
     exit(EXIT_SUCCESS);
 }

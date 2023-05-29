@@ -22,6 +22,8 @@ typedef struct proc {
     float time;      // CPU 사용시간 (0.01초 단위)
     LLI convert_time;
     char command[30];  // 프로세스 사용시 명령어
+
+    procPointer next;  // 연결 포인터
 } proc;
 
 
@@ -29,7 +31,7 @@ procPointer make_proc();
 int top_get_process_name_by_pid_string(char*, char*);
 void get_info_from_name(procPointer*, char*);
 
-void add_process(char*, procPointer*);
+void add_process(procPointer* info, char* my_pid);
 void get_stat_file(procPointer*, char*);
 void get_status_file(procPointer*, char*);
 

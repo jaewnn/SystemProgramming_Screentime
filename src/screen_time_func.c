@@ -7,8 +7,8 @@
 #include <time.h>
 
 #include "screen_time_func.h"
-#include "usage_time.h"
 #include "top.h"
+#include "usage_time.h"
 
 char str[1024];
 char blank[1024];
@@ -260,7 +260,8 @@ void print_graph() {
 }
 void print_legend() {
     memset(blank, ' ', COLS);
-    sprintf(str, " %6s %6s %-32s %3s %3s %7s %6s %6s %3s %5s %5s   %-16s %-16s ", "No.", "PID", "Apps", "PR", "NI", "VIRT", "RES", "SHR", "S", "\%CPU", "\%MEM", "Time", "Limits");
+    sprintf(str, " %6s %6s %-32s %3s %3s %7s %6s %6s %3s %5s %5s   %-16s %-16s ", "No.", "PID", "Apps", "PR", "NI",
+            "VIRT", "RES", "SHR", "S", "\%CPU", "\%MEM", "Time", "Limits");
     strncpy(blank, str, strlen(str));
     move(LEGEND_LINE_FROM_TOP, 0);
     standout();
@@ -273,28 +274,27 @@ void print_data() {
     for (int i = DATA_LINE_FROM_TOP; i < LINES - DATA_LINE_FROM_BOTTOM; i++) {
         memset(blank, ' ', COLS);
         int data_index = i - DATA_LINE_FROM_TOP;
-	procPointer info = make_proc();
-            
+        proc proc_buf;
+        procPointer info = &proc_buf;
+
         if (data_index < data_count) {
             struct tm *usage_time_tm_ptr = localtime(&data_arr[data_index].usage_time);
             get_info_from_name(&info, data_arr[data_index].name);
 
-	    if(info->priority > 26)
-	    { // Exception Handling
-		info->priority = 0; info->nice = 0; info->virt = 0; info->res = 0;
-		info->shr = 0; info->state = 'N'; info->cpu = 0; info->mem = 0;
-	    }
+            if (info->priority > 26) { // Exception Handling
+                info->priority = 0;
+                info->nice = 0;
+                info->virt = 0;
+                info->res = 0;
+                info->shr = 0;
+                info->state = 'N';
+                info->cpu = 0;
+                info->mem = 0;
+            }
 
-            sprintf(str, " %6d %6ld %-32s %3lld %3lld %7lld %6lld %6lld %3c %5.1f %5.1f   %02d:%02d:%02d         ", data_index + 1, 
-			    info->pid,data_arr[data_index].name,
-			    info->priority,
-                    		info->nice,
-                    		info->virt,
-                    		info->res,
-                    		info->shr,
-                    		info->state,
-                    		info->cpu,
-                    		info->mem,
+            sprintf(str, " %6d %6ld %-32s %3lld %3lld %7lld %6lld %6lld %3c %5.1f %5.1f   %02d:%02d:%02d         ",
+                    data_index + 1, info->pid, data_arr[data_index].name, info->priority, info->nice, info->virt,
+                    info->res, info->shr, info->state, info->cpu, info->mem,
                     (usage_time_tm_ptr->tm_mday - 1) * 24 + usage_time_tm_ptr->tm_hour - 9, usage_time_tm_ptr->tm_min,
                     usage_time_tm_ptr->tm_sec);
 
@@ -309,7 +309,7 @@ void print_data() {
 
             strncpy(blank, str, strlen(str));
         }
-	free(info);
+        
         move(i, 0);
         addnstr(blank, COLS);
     }
